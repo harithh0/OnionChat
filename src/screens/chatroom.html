@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Room</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0; /* Light background */
+    }
+    .header {
+      background-color: #ffffff; /* Header background */
+      color: #333; /* Header text color */
+      padding: 15px; /* Padding */
+      text-align: center; /* Center text */
+      border-bottom: 1px solid #ccc; /* Bottom border */
+    }
+    .header h2 {
+      font-size: 18px; /* Smaller header font size */
+      margin: 0; /* Remove default margin */
+    }
+    .chat-container {
+      flex: 1; /* Take remaining space */
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto; /* Allow scrolling */
+      background-color: white; /* Chat area background */
+      border-radius: 8px; /* Rounded corners */
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    }
+    .message {
+      padding: 10px; /* Padding for messages */
+      margin: 5px 0; /* Space between messages */
+      border-radius: 5px; /* Rounded corners */
+      max-width: 70%; /* Limit message width */
+    }
+    .message.user {
+      align-self: flex-end; /* Align user messages to the right */
+      background-color: #007BFF; /* User message background */
+      color: white; /* User message text color */
+    }
+    .message.other {
+      align-self: flex-start; /* Align other messages to the left */
+      background-color: #e5e5e5; /* Other message background */
+      color: black; /* Other message text color */
+    }
+    .message.received {
+      background-color: #f1f1f1; /* Light grey for received messages */
+      text-align: left;
+    }
+    .input-container {
+      display: flex; /* Flexbox for input and button */
+      padding: 10px; /* Padding around input */
+      background-color: white; /* Input area background */
+      border-top: 1px solid #ccc; /* Border on top */
+    }
+    input[type="text"] {
+      flex: 1; /* Take remaining space */
+      padding: 10px; /* Padding inside input */
+      border: 1px solid #ccc; /* Border color */
+      border-radius: 5px; /* Rounded corners */
+      font-size: 16px; /* Font size */
+      margin-right: 10px; /* Space between input and button */
+    }
+    button {
+      background-color: #007BFF; /* Green button color */
+      color: white; /* Button text color */
+      border: none; /* Remove border */
+      border-radius: 5px; /* Rounded corners */
+      padding: 10px 15px; /* Padding */
+      cursor: pointer; /* Pointer cursor */
+      font-size: 16px; /* Font size */
+      transition: background-color 0.3s; /* Transition for hover */
+    }
+    button:hover {
+      background-color: #0056b3; /* Darker green on hover */
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Chatting with <span id="username">username</span>: online</h2>
+  </div>
+  <div class="chat-container" id="chatContainer">
+    <!-- Chat messages will appear here -->
+  </div>
+  <div class="input-container">
+    <input type="text" id="messageInput" placeholder="Type a message..." required>
+    <button id="sendButton">Send</button>
+  </div>
+
+
+  <script type="module">
+    import { API_URL , WS_URL} from '../js/config.js';
+    window.API_URL = API_URL;
+    window.WS_URL = WS_URL;
+</script>
+
+  <script>
+
+    let friend_data = null;
+    let real_friend_name = null;
+    let chatroom_id = null;
+    let friend_public_key = null;
+    let socket = null; 
+    window.api.onChatroomData((event, { friend, realFriendName, chatroomId, friendPublicKey }) => {
+      const usernameElement = document.getElementById('username');
+      
+      usernameElement.textContent = realFriendName;
+      friend_data = friend;
+      real_friend_name = realFriendName;
+      chatroom_id = chatroomId;
+      friend_public_key = friendPublicKey;
+
+
+      
+      connect_websocket();
+
+
+
+
+
+
+
+
+
+      
+      // (async () => {
+      //   const t_public = await window.api.getUserName();
+      //   const t_private = await window.api.getUserPrivate();
+      //   const message = "Hello, World!";
+      //   const signed = await window.api.signMessage(message,t_private);
+      //   console.log(t_public);
+      //   const good = await window.api.verifyMessage(message, signed, t_public)
+      //   console.log(good);
+        //   const encryptedMessage = await window.api.encryptMessage(message, t_public);
+      //   console.log("Encrypted message:", encryptedMessage);
+
+      //   const decryptedMessage = await window.api.decryptMessage(encryptedMessage, t_private);
+      //   console.log("Decrypted message:", decryptedMessage);
+
+      // })();
+
+
+    async function connect_websocket(){
+      try {
+        const user_token = await window.api.getUserToken();
+
+        // Ensure chatroomId and WS_URL are defined
+        if (!chatroom_id || !window.WS_URL) {
+          throw new Error('chatroom_id or WS_URL is not defined');
+          return;
+        }
+
+        socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
+        
+        socket.addEventListener('open', (event) => {
+          console.log('Connected to WebSocket server');
+        });
+
+        socket.addEventListener('message', (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === "new_message") {
+            display_message(data.message, 'received');
+          }
+          console.log('Message from server:', event.data);
+        });
+
+
+        socket.addEventListener('close', (event) => {
+          console.log('Disconnected from WebSocket server');
+        });
+
+        socket.addEventListener('error', (event) => {
+          console.error('WebSocket error:', event);
+        });
+
+      } catch (error) {
+        console.error('Error connecting to WebSocket:', error);
+      }
+    }
+
+    async function send_message(message){
+      if (socket && socket.readyState === WebSocket.OPEN) {
+          const encryptedMessage = await window.api.encryptMessage(message, friend_public_key);
+          const privateKey = await window.api.getUserPrivate();
+          const messageSignature = await window.api.signMessage(message, privateKey)
+
+          const payload = {"encrypted_message" : encryptedMessage, "message_signature" : messageSignature}
+          const jsonPayload = JSON.stringify(payload);
+
+          socket.send(jsonPayload);
+          console.log('Message sent:', jsonPayload);
+          return true;
+          } else {
+            return false;
+          console.error('WebSocket is not open. Ready state:', socket.readyState);
+        }
+
+      }
+
+
+    function display_message(message, type) {
+      const messagesDiv = document.getElementById('messages');
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message', type);
+      messageDiv.textContent = message;
+      messagesDiv.appendChild(messageDiv);
+    }
+
+
+    // Example function to send messages
+    document.getElementById('sendButton').addEventListener('click', async () => {
+      const messageInput = document.getElementById('messageInput');
+      const messageText = messageInput.value.trim();
+      if (messageText) {
+        const response = await send_message(messageText);
+        console.log(response)
+        if (response === true){
+          // Create a new message element
+          const messageElement = document.createElement('div');
+          messageElement.classList.add('message', 'user');
+          messageElement.textContent = messageText;
+          
+          // Append the message to the chat container
+          document.getElementById('chatContainer').appendChild(messageElement);
+          
+          // Clear the input field
+          messageInput.value = '';
+          
+          // Scroll to the bottom of the chat container
+          document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
+        }
+      }
+    });
+
+    })
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+  </script>
+</body>
+</html>

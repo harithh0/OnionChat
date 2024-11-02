@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="left-side">
+        <img src="./assets/images/theme_icon.png" alt="Theme Icon">
+    </div>
+    <div class="right-side">
+        <div class="form-container">
+            <h2>Register</h2>
+            <input type="text" id="username" placeholder="Username">
+            <div class="error" id="error-message-username"></div>
+            <input type="password" id="password" placeholder="Password">
+            <div class="error" id="error-message-password"></div>
+            <input type="password" id="confirm-password" placeholder="Confirm Password">
+            <div class="error" id="error-message"></div>
+            <button onclick="register()">Register</button>
+        </div>
+    </div>
+    <script type="module">
+        import { API_URL } from './js/config.js';
+        window.API_URL = API_URL;
+    </script>
+    <script>
+        async function register() {
+          const username = document.getElementById('username').value.trim();
+          const password = document.getElementById('password').value.trim();
+          const confirmPassword = document.getElementById('confirm-password').value;
+            const errors = {
+                general: document.getElementById('error-message'),
+                username: document.getElementById('error-message-username'),
+                password: document.getElementById('error-message-password'),
+            };
+
+            Object.values(errors).forEach(error => {
+                error.style.display = 'none';
+                error.textContent = '';
+            });
+
+            if (!username || !password || !confirmPassword) {
+                errors.general.textContent = "Please fill out all fields.";
+                errors.general.style.display = 'block';
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                errors.general.textContent = 'Passwords do not match.';
+                errors.general.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/register/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }), // automatically does "username" : username ... and converts to string
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (data.username) {
+                        errors.username.textContent = data.username[0];
+                        errors.username.style.display = 'block';
+                    } else if (data.password) {
+                        errors.password.textContent = data.password[0];
+                        errors.password.style.display = 'block';
+                    } else {
+                        errors.general.textContent = 'Registration failed.';
+                        errors.general.style.display = 'block';
+                    }
+                    return;
+                }
+
+
+                // do key generation here
+
+                const keys = await window.api.generateRSAKeys();
+
+                console.log(keys)
+
+                const wrappedData = { main_user: data };
+                data.private_key = keys.privateKey;
+                data.user_data.public_key = keys.publicKey
+                
+                
+                window.api.saveMainUser(data);
+
+
+                const user_token = await window.api.getUserToken();
+
+                const public_response = await fetch(`${API_URL}/set_public/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', "Authorization" : `Token ${user_token}` },
+                    body: JSON.stringify({ "public_key" : keys.publicKey }), // automatically does "username" : username ... and converts to string
+                });
+                if (public_response.ok){
+                  window.close(); 
+                }
+
+                  
+                                
+                document.querySelectorAll('input[type="text"], input[type="password"]').forEach(input => input.value = '');
+            } catch (error) {
+                errors.general.textContent = error.message;
+                errors.general.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Friend Requests</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0; /* Light background color */
+      font-family: Arial, sans-serif; /* Clean font */
+    }
+    h1 {
+      margin-bottom: 20px; /* Space below the header */
+      color: #333; /* Dark text color */
+    }
+    .container {
+      background-color: white; /* White background for container */
+      padding: 20px; /* Padding inside the container */
+      border-radius: 8px; /* Rounded corners */
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+      width: 300px; /* Fixed width for the container */
+      max-height: 400px; /* Maximum height */
+      overflow-y: auto; /* Enable vertical scrolling */
+    }
+    .friend {
+      display: flex; /* Use flexbox for friend entry */
+      justify-content: space-between; /* Space between name and buttons */
+      padding: 10px; /* Padding for each friend entry */
+      border-bottom: 1px solid #ccc; /* Light border between entries */
+      color: #555; /* Color for friend names */
+    }
+    .friend:last-child {
+      border-bottom: none; /* Remove border for last entry */
+    }
+    .button {
+      border: none; /* No border */
+      border-radius: 5px; /* Rounded corners */
+      padding: 5px 10px; /* Padding */
+      cursor: pointer; /* Pointer cursor */
+      font-size: 16px; /* Font size */
+    }
+    .accept {
+      background-color: #28a745; /* Green background for accept */
+      color: white; /* White text color */
+    }
+    .decline {
+      background-color: #dc3545; /* Red background for decline */
+      color: white; /* White text color */
+    }
+  </style>
+</head>
+<body>
+  <h1>Friends</h1>
+  <div class="container" id="friendsContainer">
+    <!-- Placeholder for pending friends -->
+    <!-- Example entries -->
+    <div class="friend">
+
+    </div>
+    <!-- Add more entries as needed -->
+  </div>
+  <script type="module">
+    import { API_URL , WS_URL} from '../js/config.js';
+    window.API_URL = API_URL;
+    window.WS_URL = WS_URL;
+</script>
+
+
+  <script>
+
+    async function get_actual_friend(friend, current_username){
+    let friend_name;
+    if (friend.from_user_name === current_username) {
+        friend_name = friend.to_user_name;
+      } else {
+        friend_name = friend.from_user_name;
+      }
+
+      return friend_name;
+    }
+
+
+    async function get_chatroom_id(friend, real_friend_name){
+        const user_token = await window.api.getUserToken();
+
+
+        try {
+        const response = await fetch(`${window.API_URL}/handle_chatroom/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                "Authorization": `Token ${user_token}` 
+            },
+            body: JSON.stringify({ "user_to_chat" :  real_friend_name})
+            });
+
+
+        if(!response.ok){
+            return null;
+        }
+
+        const data = await response.json();
+        return data.chatroom_id;
+
+      } catch (error) {
+        console.error('Error fetching pending friends:', error);
+      }
+    }
+
+
+
+    async function get_public_key(friend, real_friend_name){
+        const user_token = await window.api.getUserToken();
+
+        try {
+        const response = await fetch(`${window.API_URL}/get_public/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                "Authorization": `Token ${user_token}` 
+            },
+            body: JSON.stringify({ "get_username" :  real_friend_name})
+            });
+
+
+        if(!response.ok){
+            return null;
+        }
+
+        const data = await response.json();
+        return data.public_key;
+
+      } catch (error) {
+        console.error('Error fetching public_key:', error);
+      }
+    }
+
+
+
+    async function handle_chat(friend, real_friend_name){
+
+        const chatroom_id = await get_chatroom_id(friend, real_friend_name);
+        const friend_public_key = await get_public_key(friend, real_friend_name);
+
+        if (chatroom_id !== null && friend_public_key !== null){
+            window.api.openChatroomWindow(friend, real_friend_name, chatroom_id, friend_public_key);
+            window.close();
+            return;
+        }
+        // open new window of chat 
+        // const user_token = await window.api.getUserToken();
+       
+            
+        //     const socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
+            
+        //     socket.addEventListener('open', (event) => {
+        //     console.log('Connected to WebSocket server');
+        //     });
+        // }
+
+
+    }
+    // Example: Fetching and displaying pending friend requests
+
+   
+    async function loadCurrentFriends() {
+        const user_token = await window.api.getUserToken();
+        const current_username = await window.api.getUserName();
+
+
+      try {
+        const response = await fetch(`${window.API_URL}/get_friends/`, {
+        method: 'GET',
+        headers: { 
+            'Content-Type': 'application/json', 
+            "Authorization": `Token ${user_token}` 
+        },
+        });
+
+
+        if(!response.ok){
+            return;
+        }
+
+        const friends = await response.json();
+
+
+        const container = document.getElementById('friendsContainer');
+        container.innerHTML = ''; // Clear the container before adding friends
+
+        for (const friend of friends) {
+          const real_friend_name = await get_actual_friend(friend, current_username);
+
+          const friendDiv = document.createElement('div');
+          friendDiv.className = 'friend';
+          
+          const friendName = document.createElement('span');
+          friendName.textContent = real_friend_name; // Display the actual friend's name
+          
+    // Could add more feateures remove, view public key, etc.
+
+          const buttonDiv = document.createElement('div');
+
+          const chatButton = document.createElement('button');
+          chatButton.textContent = 'Chat';
+          chatButton.className = 'chat';
+          chatButton.dataset.friendId = friend.id; // Assuming friend has an id property
+          chatButton.onclick = () => handle_chat(friend, real_friend_name); // Assign function to onclick
+
+
+        //   const rejectButton = document.createElement('button');
+        //   rejectButton.textContent = 'Reject';
+        //   rejectButton.className = 'reject';
+        //   rejectButton.dataset.friendId = friend.id; // Assuming friend has an id property
+
+          buttonDiv.appendChild(chatButton);
+        //   buttonDiv.appendChild(rejectButton);
+
+          friendDiv.appendChild(friendName);
+          friendDiv.appendChild(buttonDiv);
+
+          container.appendChild(friendDiv);
+        }
+
+      } catch (error) {
+        console.error('Error fetching pending friends:', error);
+      }
+    }
+
+    // async function acceptFriendRequest(friendName) {
+    //   try {
+    //     const response = await fetch(`${window.API_URL}/accept_friend_request/`, {
+    //       method: 'POST',
+    //       headers: { 
+    //         'Content-Type': 'application/json', 
+    //         "Authorization": `Token 1e23e8a43b7d8067e9dcf212854854b6ed7ca97c` 
+    //     },
+    //       body: JSON.stringify({ "user_to_accept" : friendName }) // Send friend's name in the request
+    //     });
+
+    //     if (response.ok) {
+    //       loadCurrentFriends(); // Reload pending friends
+    //     } else {
+    //       console.error('Error accepting friend request');
+    //     }
+    //   } catch (error) {
+    //     console.error('Error accepting friend request:', error);
+    //   }
+    // }
+
+    // async function declineFriendRequest(friendName) {
+    //   try {
+    //     const response = await fetch(`${window.API_URL}/decline_friend_request/`, {
+    //       method: 'POST',
+    //       headers: { 'Content-Type': 'application/json' },
+    //       body: JSON.stringify({ friendName }) // Send friend's name in the request
+    //     });
+
+    //     if (response.ok) {
+    //       loadCurrentFriends(); // Reload pending friends
+    //     } else {
+    //       console.error('Error declining friend request');
+    //     }
+    //   } catch (error) {
+    //     console.error('Error declining friend request:', error);
+    //   }
+    // }
+
+    // Load pending friends on page load
+    window.onload = loadCurrentFriends;
+  </script>
+</body>
+</html>
