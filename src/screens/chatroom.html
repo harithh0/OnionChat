@@ -312,7 +312,9 @@
           const data = JSON.parse(event.data);
           if (data.message_type === "new_message") {
             console.log(my_private);
-            const decryptedMessage = await window.api.decryptMessage(data.encrypted_message, my_private);
+            // const decryptedMessage = await window.api.decryptMessage(data.encrypted_message, my_private);
+            const ivBuffer = await window.api.convertIVToBuffer(data.iv);
+            const decryptedMessage = await window.api.decryptMessageUsingSK(data.encrypted_message, s_key, ivBuffer);
             const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
             
             if (verifySignature === true){
@@ -402,7 +404,9 @@
 
     async function send_message(message){
       if (socket && socket.readyState === WebSocket.OPEN) {
-          const encryptedMessage = await window.api.encryptMessage(message, friend_public_key);
+          // const encryptedMessage = await window.api.encryptMessage(message, friend_public_key);
+          const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
+         
           const privateKey = await window.api.getUserPrivate();
           const messageSignature = await window.api.signMessage(message, privateKey)
 
