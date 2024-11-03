@@ -410,7 +410,7 @@
           const privateKey = await window.api.getUserPrivate();
           const messageSignature = await window.api.signMessage(message, privateKey)
 
-          const payload = {"encrypted_message" : encryptedMessage, "message_signature" : messageSignature}
+          const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
           const jsonPayload = JSON.stringify(payload);
 
           socket.send(jsonPayload);
