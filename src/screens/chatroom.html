@@ -252,6 +252,7 @@
         });
 
       //display connecting..
+      console.log("skey", sk)
       connect_websocket()
       .then(() => get_messages_from_db())
       .then(() => loadMessages());
@@ -316,7 +317,7 @@
             const ivBuffer = await window.api.convertIVToBuffer(data.iv);
             const decryptedMessage = await window.api.decryptMessageUsingSK(data.encrypted_message, s_key, ivBuffer);
             const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
-            
+            console.log("decrypted message", decryptedMessage)
             if (verifySignature === true){
               const newMessage = {
               senderUsername: real_friend_name,
@@ -405,6 +406,8 @@
     async function send_message(message){
       if (socket && socket.readyState === WebSocket.OPEN) {
           // const encryptedMessage = await window.api.encryptMessage(message, friend_public_key);
+          
+          
           const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
          
           const privateKey = await window.api.getUserPrivate();
@@ -412,7 +415,7 @@
 
           const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
           const jsonPayload = JSON.stringify(payload);
-
+          
           socket.send(jsonPayload);
           console.log('Message sent:', jsonPayload);
           return true;
@@ -525,12 +528,14 @@
             return;
           }
 
-          const encryptedMessage = await window.api.encryptMessage(String(messageInput.value), friend_public_key);
-          const privateKey = await window.api.getUserPrivate();
-          const messageSignature = await window.api.signMessage(String(messageInput.value), privateKey)
+        const message = messageInput.value;
+        const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
+         
+         const privateKey = await window.api.getUserPrivate();
+         const messageSignature = await window.api.signMessage(message, privateKey)
 
-          
-          const payload = {"encrypted_message" : encryptedMessage, "message_signature" : messageSignature}
+         const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
+
           const jsonPayload = JSON.stringify(payload);
 
           socket.send(jsonPayload);

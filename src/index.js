@@ -254,7 +254,7 @@ function decryptMessageUsingSK(encryptedData, key, iv) {
   const key = await generateSK(); // Generate or obtain a 32-byte symmetric key
   const keyHex = key.toString('hex');
   console.log('Generated Key:', keyHex);
-
+  
   const result = await encryptMessageUsingSK('Hello, World!', key);
   console.log('Encrypted Text:', result.encryptedData);
   console.log('IV:', result.iv);
@@ -423,7 +423,7 @@ ipcMain.on('open-chatroom-window', (event, { friend, realFriendName, chatroomId,
 
   // Pass data to the chatroom window
   chatroomWindow.webContents.on('did-finish-load', () => {
-    chatroomWindow.webContents.send('chatroom-data', { friend, realFriendName, chatroomId, friendPublicKey });
+    chatroomWindow.webContents.send('chatroom-data', { friend, realFriendName, chatroomId, friendPublicKey, sk });
   });
 });
 
