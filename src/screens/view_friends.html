@@ -164,7 +164,7 @@
             const my_private = await window.api.getUserPrivate();
             const decryptedSk = await window.api.decryptMessage(data.sk, my_private)
             const skArray = decryptedSk.split(',').map(Number);
-            const skBuffer = await window.api.convertSkToBuffer(skArray)
+            const skBuffer = await window.api.convertSkToBuffer(skArray) // need to convert it to bytes so it can be used in enc/dec operations
             return skBuffer;
         }
         return null;

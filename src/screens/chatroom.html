@@ -252,10 +252,12 @@
         });
 
       //display connecting..
-      console.log("skey", sk)
       connect_websocket()
       .then(() => get_messages_from_db())
-      .then(() => loadMessages());
+      .then(() => {
+          console.log('Calling loadMessages with s_key:', s_key); // Log before calling loadMessages
+          loadMessages();
+      })
 
 
 
@@ -447,67 +449,69 @@
       return date.toLocaleTimeString('en-US', options);
     }
 
-    function loadMessages() {
+    async function loadMessages() {
       const chatBox = document.getElementById('chatBox');
       chatBox.innerHTML = ''; // Clear existing messages
 
       let lastDate = '';
       let lastTime = '';
       let messageGroup = null;
-      console.log("nigga", messagesData)
-      messagesData.forEach((message, index) => {
-        const messageDate = formatDate(message.timestamp);
-        const messageTime = formatTime(message.timestamp);
+      (async () => {
+        for (const [index, message] of messagesData.entries()) {
+          const messageDate = formatDate(message.timestamp);
+          const messageTime = formatTime(message.timestamp);
 
-        if (messageDate !== lastDate) {
-          const dateSeparator = document.createElement('div');
-          dateSeparator.classList.add('date-separator');
-          dateSeparator.innerText = `--- ${messageDate} ---`;
-          chatBox.appendChild(dateSeparator);
-          lastDate = messageDate;
-          lastTime = '';
-        }
-
-        if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
-          if (messageGroup) {
-            const timeElement = document.createElement('div');
-            timeElement.classList.add('timestamp');
-            timeElement.innerText = lastTime;
-            messageGroup.appendChild(timeElement);
-            chatBox.appendChild(messageGroup);
+          if (messageDate !== lastDate) {
+            const dateSeparator = document.createElement('div');
+            dateSeparator.classList.add('date-separator');
+            dateSeparator.innerText = `--- ${messageDate} ---`;
+            chatBox.appendChild(dateSeparator);
+            lastDate = messageDate;
+            lastTime = '';
           }
 
-          messageGroup = document.createElement('div');
-          messageGroup.classList.add('message-group');
-          lastTime = messageTime;
+          if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
+            if (messageGroup) {
+              const timeElement = document.createElement('div');
+              timeElement.classList.add('timestamp');
+              timeElement.innerText = lastTime;
+              messageGroup.appendChild(timeElement);
+              chatBox.appendChild(messageGroup);
+            }
+
+            messageGroup = document.createElement('div');
+            messageGroup.classList.add('message-group');
+            lastTime = messageTime;
+          }
+
+          const messageElement = document.createElement('div');
+          messageElement.classList.add('message');
+          const ivBuffer = await window.api.convertIVToBuffer(data.iv);
+          const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, message.iv);
+          messageElement.innerText = decryptedMessage;
+
+          console.log("current user", currentUser);
+          if (message.senderUsername === currentUser) {
+            messageElement.classList.add('sent');
+            messageGroup.style.alignItems = 'flex-end';
+          } else {
+            messageElement.classList.add('received');
+            messageGroup.style.alignItems = 'flex-start';
+          }
+
+          messageGroup.appendChild(messageElement);
+
+          // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
+          if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
+            const timeElement = document.createElement('div');
+            timeElement.classList.add('timestamp');
+            timeElement.innerText = messageTime;
+            messageGroup.appendChild(timeElement);
+            chatBox.appendChild(messageGroup);
+            messageGroup = null; // Reset message group
+          }
         }
-
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message');
-        // const decryptedMessage = window.api.decryptMessage(message.content)
-        messageElement.innerText = message.content;
-
-        console.log("current user", currentUser)
-        if (message.senderUsername === currentUser) {
-          messageElement.classList.add('sent');
-          messageGroup.style.alignItems = 'flex-end';
-        } else {
-          messageElement.classList.add('received');
-          messageGroup.style.alignItems = 'flex-start';
-        }
-
-        messageGroup.appendChild(messageElement);
-
-        // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
-        if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
-          const timeElement = document.createElement('div');
-          timeElement.classList.add('timestamp');
-          timeElement.innerText = messageTime;
-          messageGroup.appendChild(timeElement);
-          chatBox.appendChild(messageGroup);
-          messageGroup = null; // Reset message group
-        }
-      });
+      })();
 
       chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
     }

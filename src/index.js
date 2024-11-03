@@ -230,6 +230,7 @@ async function encryptMessageUsingSK(plainText, key) {
 }
 
 function decryptMessageUsingSK(encryptedData, key, iv) {
+
   // Validate that the key and IV have the correct lengths
   if (key.length !== 32) {
     throw new Error('Key must be 32 bytes (256 bits) for AES-256 decryption.');
@@ -237,7 +238,6 @@ function decryptMessageUsingSK(encryptedData, key, iv) {
   if (iv.length !== 16) {
     throw new Error('IV must be 16 bytes for AES-256-CBC decryption.');
   }
-
   // Create a decipher instance
   const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
   
