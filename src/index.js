@@ -174,12 +174,27 @@ function encryptMessage(message, public_key){
   return encryptedMessage.toString('base64'); // binary to base64 (text) format (makes it easier to transport over the internet HTTP, JSON)  | proviedes compatbility between devices
 }
 
-function decryptMessage(encrypted_message, private_key){
-  const encryptedMessageBuffer = Buffer.from(encrypted_message, "base64"); // takes a base64 encrypted text
-  // Decrypt the message
-  const decryptedMessage = crypto.privateDecrypt(private_key, encryptedMessageBuffer);
-  return decryptedMessage.toString('utf8'); // takes it in binary format and converts it into human readable string format
+function decryptMessage(encrypted_message, private_key) {
+  try {
+    const encryptedMessageBuffer = Buffer.from(encrypted_message, "base64");
+    
+    // Debugging length
+    console.log("Encrypted message length:", encryptedMessageBuffer.length);
+    
+    // Decrypt the message
+    const decryptedMessage = crypto.privateDecrypt(
+      {
+        key: private_key,
+        padding: crypto.constants.RSA_PKCS1_PADDING
+      },
+      encryptedMessageBuffer
+    );
 
+    return decryptedMessage.toString('utf8');
+  } catch (error) {
+    console.error("Decryption failed:", error.message);
+    throw error;
+  }
 }
 
 function signMessage(message, private_key){

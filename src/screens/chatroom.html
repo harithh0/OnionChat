@@ -5,96 +5,211 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat Room</title>
   <style>
+
+
+
     body {
       display: flex;
-      flex-direction: column;
+      justify-content: center;
+      align-items: center;
       height: 100vh;
-      margin: 0;
+      background-color: #e5e5ea;
       font-family: Arial, sans-serif;
-      background-color: #f0f0f0; /* Light background */
+      margin: 0;
     }
-    .header {
-      background-color: #ffffff; /* Header background */
-      color: #333; /* Header text color */
-      padding: 15px; /* Padding */
-      text-align: center; /* Center text */
-      border-bottom: 1px solid #ccc; /* Bottom border */
+    #statusElement {
+      font-size: 1em;
+      font-weight: bold;
+      color: #333;
     }
-    .header h2 {
-      font-size: 18px; /* Smaller header font size */
-      margin: 0; /* Remove default margin */
-    }
+
     .chat-container {
-      flex: 1; /* Take remaining space */
+      width: 100%;
+      height: 500px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       display: flex;
       flex-direction: column;
-      padding: 20px;
-      overflow-y: auto; /* Allow scrolling */
-      background-color: white; /* Chat area background */
-      border-radius: 8px; /* Rounded corners */
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+      overflow: hidden; /* Prevent overflow */
+      margin-top:55px;
+
     }
+
+    .chat-box {
+      flex-grow: 1;
+      overflow-y: auto; /* Enable vertical scrolling */
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden; /* Prevent horizontal scrolling */
+    }
+
+    .message-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin: 8px 0;
+    }
+
     .message {
-      padding: 10px; /* Padding for messages */
-      margin: 5px 0; /* Space between messages */
-      border-radius: 5px; /* Rounded corners */
-      max-width: 70%; /* Limit message width */
+      max-width: 80%;
+      padding: 10px 15px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.5;
+      word-wrap: break-word; /* Allow wrapping for long messages */
     }
-    .message.user {
-      align-self: flex-end; /* Align user messages to the right */
-      background-color: #007BFF; /* User message background */
-      color: white; /* User message text color */
-    }
-    .message.other {
-      align-self: flex-start; /* Align other messages to the left */
-      background-color: #e5e5e5; /* Other message background */
-      color: black; /* Other message text color */
-    }
+
     .message.received {
-      background-color: #f1f1f1; /* Light grey for received messages */
+      background-color: #f0f0f0;
+      align-self: flex-start;
+      border-top-left-radius: 5px;
+    }
+
+    .message.sent {
+      background-color: #007aff;
+      color: white;
+      align-self: flex-end;
+      border-top-right-radius: 5px;
+    }
+
+    .date-separator {
+      text-align: center;
+      font-size: 14px;
+      color: #a0a0a0;
+      margin: 10px 0;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #a0a0a0;
+      margin-top: 5px;
+    }
+
+    .message-group {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 10px;
+    }
+
+    .message.received .timestamp {
       text-align: left;
+      margin-top: 5px;
     }
+
+    .message.sent .timestamp {
+      text-align: right;
+      margin-top: 5px;
+    }
+
+    /* Input area */
     .input-container {
-      display: flex; /* Flexbox for input and button */
-      padding: 10px; /* Padding around input */
-      background-color: white; /* Input area background */
-      border-top: 1px solid #ccc; /* Border on top */
+      display: flex;
+      align-items: center;
+      border-top: 1px solid #ddd;
+      padding: 10px;
     }
-    input[type="text"] {
-      flex: 1; /* Take remaining space */
-      padding: 10px; /* Padding inside input */
-      border: 1px solid #ccc; /* Border color */
-      border-radius: 5px; /* Rounded corners */
-      font-size: 16px; /* Font size */
-      margin-right: 10px; /* Space between input and button */
+
+    .input-container textarea {
+      flex-grow: 1;
+      padding: 8px;
+      font-size: 15px;
+      border: 1px solid #ddd;
+      border-radius: 18px;
+      outline: none;
+      resize: none; /* Prevent resizing */
+      overflow: hidden; /* Hide overflow */
+      max-height: 150px; /* Optional max height */
     }
-    button {
-      background-color: #007BFF; /* Green button color */
-      color: white; /* Button text color */
-      border: none; /* Remove border */
-      border-radius: 5px; /* Rounded corners */
-      padding: 10px 15px; /* Padding */
-      cursor: pointer; /* Pointer cursor */
-      font-size: 16px; /* Font size */
-      transition: background-color 0.3s; /* Transition for hover */
+
+    .input-container button {
+      background-color: #007aff;
+      color: white;
+      padding: 8px 15px;
+      font-size: 15px;
+      border: none;
+      border-radius: 18px;
+      margin-left: 8px;
+      cursor: pointer;
     }
-    button:hover {
-      background-color: #0056b3; /* Darker green on hover */
+
+    .input-container button:hover {
+      background-color: #0062cc;
     }
+
+    .file-input-container {
+      position: relative;
+      margin-right: 8px;
+    }
+
+    .file-input {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+    }
+
+    .file-input-icon {
+      font-size: 24px;
+      color: #007aff;
+      cursor: pointer;
+    }
+    .top-right {
+    position: fixed;
+    top: 0;
+    text-align: right;
+    margin-right: 10px;
+    width: 100%;
+    background-color: #f1f1f1; /* Optional: Add background color */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional: Add shadow for better visibility */
+    z-index: 1000; /* Ensure it stays on top of other elements */
+}
+
+.top-center {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000; /* Ensure it stays on top of other elements */
+}
+#closeButton{
+  display: none;
+  
+}
   </style>
 </head>
-<body>
-  <div class="header">
-    <h2>Chatting with <span id="username">username</span>: online</h2>
-  </div>
-  <div class="chat-container" id="chatContainer">
-    <!-- Chat messages will appear here -->
-  </div>
-  <div class="input-container">
-    <input type="text" id="messageInput" placeholder="Type a message..." required>
-    <button id="sendButton">Send</button>
-  </div>
 
+
+
+
+<body>
+
+  <div class="top-right">
+    <p>status: <span id="statusElement"></span></p>
+    <button id="closeButton">Reconnect</button>
+
+  </div>
+  <div class="top-center">
+    <p>Chatting with <span id="usernameElement"></span></p>
+
+  </div>
+  <div class="chat-container"> 
+
+    <div class="chat-box" id="chatBox">
+      <!-- Messages will be dynamically inserted here -->
+    </div>
+    
+    <div class="input-container">
+      <div class="file-input-container">
+        <input type="file" class="file-input" id="fileInput">
+        <span class="file-input-icon">&#128206;</span> <!-- Paper clip icon -->
+      </div>
+      <textarea id="messageInput" placeholder="Type a message..."></textarea>
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
 
   <script type="module">
     import { API_URL , WS_URL} from '../js/config.js';
@@ -104,13 +219,19 @@
 
   <script>
 
+
+
     let friend_data = null;
     let real_friend_name = null;
     let chatroom_id = null;
     let friend_public_key = null;
     let socket = null; 
-    window.api.onChatroomData((event, { friend, realFriendName, chatroomId, friendPublicKey }) => {
-      const usernameElement = document.getElementById('username');
+    let messagesData = null;
+    let currentUser = null;
+    let my_private = null
+
+
+    window.api.onChatroomData(async (event, { friend, realFriendName, chatroomId, friendPublicKey }) => {
       
       usernameElement.textContent = realFriendName;
       friend_data = friend;
@@ -118,9 +239,25 @@
       chatroom_id = chatroomId;
       friend_public_key = friendPublicKey;
 
+      currentUser = await window.api.getUserName();
+      my_private = await window.api.getUserPrivate();
 
-      
-      connect_websocket();
+      document.getElementById('closeButton').addEventListener('click', () => {
+          window.api.openChatroomWindow(friend, real_friend_name, chatroom_id, friend_public_key);
+
+          window.close();
+
+        });
+
+      //display connecting..
+      connect_websocket()
+      .then(() => get_messages_from_db())
+      .then(() => loadMessages());
+
+
+
+      // if socket is null still we will display connection to server failed
+
 
 
 
@@ -148,6 +285,8 @@
       // })();
 
 
+      
+
     async function connect_websocket(){
       try {
         const user_token = await window.api.getUserToken();
@@ -160,31 +299,91 @@
 
         socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
         
+        
         socket.addEventListener('open', (event) => {
           console.log('Connected to WebSocket server');
+          statusElement.textContent = 'Connected';
+          statusElement.style.color = 'green';
         });
 
-        socket.addEventListener('message', (event) => {
+        socket.addEventListener('message', async (event) => {
           const data = JSON.parse(event.data);
-          if (data.type === "new_message") {
-            display_message(data.message, 'received');
+          if (data.message_type === "new_message") {
+            console.log(my_private);
+            const decryptedMessage = await window.api.decryptMessage(data.encrypted_message, my_private);
+            const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
+
+            const newMessage = {
+              senderUsername: real_friend_name,
+              content: verifySignature,
+              timestamp: new Date().toISOString()
+          };
+            messagesData.push(newMessage);
+            loadMessages();
+            console.log('Message from server:', decryptedMessage);
+
           }
-          console.log('Message from server:', event.data);
         });
 
 
         socket.addEventListener('close', (event) => {
           console.log('Disconnected from WebSocket server');
+          statusElement.textContent = 'Disconnected';
+          statusElement.style.color = 'red';
+          statusElement.style.textAlign = 'center';
+          document.getElementById('closeButton').style.display = 'block';
+
+
         });
 
         socket.addEventListener('error', (event) => {
           console.error('WebSocket error:', event);
+          statusElement.textContent = 'Failed';
+          statusElement.style.color = 'red';
+          statusElement.style.textAlign = 'center';
+          document.getElementById('closeButton').style.display = 'block';
+
+
         });
 
       } catch (error) {
-        console.error('Error connecting to WebSocket:', error);
+        statusElement.textContent = 'WS connection failed';
+        statusElement.style.color = 'red';
+
       }
     }
+
+
+    async function get_messages_from_db(){
+        const user_token = await window.api.getUserToken();
+
+        try {
+        const response = await fetch(`${window.API_URL}/get_messages_from_db/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                "Authorization": `Token ${user_token}` 
+            },
+            body : JSON.stringify({
+              
+              "chatroom_id" : chatroom_id
+            })
+            });
+
+
+        if(!response.ok){
+            return null;
+        }
+
+        messagesData = await response.json();
+        console.log(messagesData);
+
+      } catch (error) {
+        console.error('Error fetching pending friends:', error);
+      }
+    }
+
+
 
     async function send_message(message){
       if (socket && socket.readyState === WebSocket.OPEN) {
@@ -206,58 +405,146 @@
       }
 
 
-    function display_message(message, type) {
-      const messagesDiv = document.getElementById('messages');
-      const messageDiv = document.createElement('div');
-      messageDiv.classList.add('message', type);
-      messageDiv.textContent = message;
-      messagesDiv.appendChild(messageDiv);
+
+
+
+
+      
+    })
+    
+
+    function formatDate(isoString) {
+      const date = new Date(isoString);
+      const options = { month: 'long', day: 'numeric' };
+      return date.toLocaleDateString('en-US', options);
+    }
+
+    function formatTime(isoString) {
+      const date = new Date(isoString);
+      const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+      return date.toLocaleTimeString('en-US', options);
+    }
+
+    function loadMessages() {
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML = ''; // Clear existing messages
+
+      let lastDate = '';
+      let lastTime = '';
+      let messageGroup = null;
+      console.log("nigga", messagesData)
+      messagesData.forEach((message, index) => {
+        const messageDate = formatDate(message.timestamp);
+        const messageTime = formatTime(message.timestamp);
+
+        if (messageDate !== lastDate) {
+          const dateSeparator = document.createElement('div');
+          dateSeparator.classList.add('date-separator');
+          dateSeparator.innerText = `--- ${messageDate} ---`;
+          chatBox.appendChild(dateSeparator);
+          lastDate = messageDate;
+          lastTime = '';
+        }
+
+        if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
+          if (messageGroup) {
+            const timeElement = document.createElement('div');
+            timeElement.classList.add('timestamp');
+            timeElement.innerText = lastTime;
+            messageGroup.appendChild(timeElement);
+            chatBox.appendChild(messageGroup);
+          }
+
+          messageGroup = document.createElement('div');
+          messageGroup.classList.add('message-group');
+          lastTime = messageTime;
+        }
+
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        messageElement.innerText = message.content;
+
+        console.log("current user", currentUser)
+        if (message.senderUsername === currentUser) {
+          messageElement.classList.add('sent');
+          messageGroup.style.alignItems = 'flex-end';
+        } else {
+          messageElement.classList.add('received');
+          messageGroup.style.alignItems = 'flex-start';
+        }
+
+        messageGroup.appendChild(messageElement);
+
+        // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
+        if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
+          const timeElement = document.createElement('div');
+          timeElement.classList.add('timestamp');
+          timeElement.innerText = messageTime;
+          messageGroup.appendChild(timeElement);
+          chatBox.appendChild(messageGroup);
+          messageGroup = null; // Reset message group
+        }
+      });
+
+      chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+    }
+
+    const messageInput = document.getElementById('messageInput');
+
+    messageInput.addEventListener('input', function() {
+      messageInput.style.height = 'auto'; // Reset height to auto
+      messageInput.style.height = messageInput.scrollHeight + 'px'; // Set new height based on scroll height
+    });
+
+
+    async function sendMessage() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+          const messageInput = document.getElementById('messageInput');
+            
+          if (messageInput.value.trim() === ""){
+            return;
+          }
+
+          const encryptedMessage = await window.api.encryptMessage(String(messageInput), friend_public_key);
+          const privateKey = await window.api.getUserPrivate();
+          const messageSignature = await window.api.signMessage(String(messageInput), privateKey)
+
+          const payload = {"encrypted_message" : encryptedMessage, "message_signature" : messageSignature}
+          const jsonPayload = JSON.stringify(payload);
+
+          socket.send(jsonPayload);
+          console.log('Message sent:', jsonPayload);
+
+          const newMessage = {
+            senderUsername: currentUser,
+            content: messageInput.value,
+            timestamp: new Date().toISOString()
+          };
+
+          messagesData.push(newMessage);
+          loadMessages();
+          messageInput.style.height = 'auto'; // Reset height
+          messageInput.value = ''; // Clear input after sending
+
+          return true;
+          } else {
+            return false;
+          console.error('WebSocket is not open. Ready state:', socket.readyState);
+        }
+
+
+
     }
 
 
-    // Example function to send messages
-    document.getElementById('sendButton').addEventListener('click', async () => {
-      const messageInput = document.getElementById('messageInput');
-      const messageText = messageInput.value.trim();
-      if (messageText) {
-        const response = await send_message(messageText);
-        console.log(response)
-        if (response === true){
-          // Create a new message element
-          const messageElement = document.createElement('div');
-          messageElement.classList.add('message', 'user');
-          messageElement.textContent = messageText;
-          
-          // Append the message to the chat container
-          document.getElementById('chatContainer').appendChild(messageElement);
-          
-          // Clear the input field
-          messageInput.value = '';
-          
-          // Scroll to the bottom of the chat container
-          document.getElementById('chatContainer').scrollTop = document.getElementById('chatContainer').scrollHeight;
-        }
+    // Add event listener for Enter key
+    document.getElementById('messageInput').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // Prevent default behavior of Enter key
+        sendMessage();
       }
     });
 
-    })
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 
   </script>
 </body>
