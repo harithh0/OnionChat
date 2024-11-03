@@ -311,11 +311,11 @@
           if (data.message_type === "new_message") {
             console.log(my_private);
             const decryptedMessage = await window.api.decryptMessage(data.encrypted_message, my_private);
-            const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
+            // const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
 
             const newMessage = {
               senderUsername: real_friend_name,
-              content: verifySignature,
+              content: decryptedMessage,
               timestamp: new Date().toISOString()
           };
             messagesData.push(newMessage);
@@ -505,9 +505,9 @@
             return;
           }
 
-          const encryptedMessage = await window.api.encryptMessage(String(messageInput), friend_public_key);
+          const encryptedMessage = await window.api.encryptMessage(messageInput, friend_public_key);
           const privateKey = await window.api.getUserPrivate();
-          const messageSignature = await window.api.signMessage(String(messageInput), privateKey)
+          const messageSignature = await window.api.signMessage(messageInput, privateKey)
 
           const payload = {"encrypted_message" : encryptedMessage, "message_signature" : messageSignature}
           const jsonPayload = JSON.stringify(payload);
