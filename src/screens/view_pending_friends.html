@@ -124,7 +124,7 @@
           acceptButton.textContent = 'Accept';
           acceptButton.className = 'accept';
           acceptButton.dataset.friendId = friend.id; // Assuming friend has an id property
-          acceptButton.onclick = () => acceptFriendRequest(real_friend_name); // Assign function to onclick
+          acceptButton.onclick = () => acceptFriendRequest(friend, real_friend_name); // Assign function to onclick
 
 
           const rejectButton = document.createElement('button');
@@ -146,8 +146,9 @@
       }
     }
 
-    async function acceptFriendRequest(friendName) {
+    async function acceptFriendRequest(friend, friendName) {
         const user_token = await window.api.getUserToken();
+        let friend_public_key = null;
 
       try {
         const response = await fetch(`${window.API_URL}/accept_friend_request/`, {
@@ -163,11 +164,69 @@
           loadPendingFriends(); // Reload pending friends
         } else {
           console.error('Error accepting friend request');
+          return;
+        
+        }
+      } catch (error) {
+        console.error('Error accepting friend request:', error);
+      }
+
+
+
+      try {
+        const response = await fetch(`${window.API_URL}/get_public/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                "Authorization": `Token ${user_token}` 
+        },
+            body: JSON.stringify({ "get_username" :  friendName})
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            friend_public_key = data.public_key;
+
+        } else {
+          console.error('Error accepting friend request');
+          return;
+        }
+      } catch (error) {
+        console.error('Error accepting friend request:', error);
+      }
+
+
+
+      try {
+        const my_public = await window.api.getUserPublic();
+
+        const SK = await window.api.generateSK();
+        const friend_SK = await window.api.encryptMessage(String(SK), friend_public_key);
+        const current_user_SK = await window.api.encryptMessage(String(SK), my_public);
+
+        const response = await fetch(`${window.API_URL}/set_SK/`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            "Authorization": `Token ${user_token}` 
+        },
+          body: JSON.stringify({ "from_user" : friendName, "friend_object" : friend,  "current_user_SK" : current_user_SK, "friend_SK" : friend_SK }) // Send friend's name in the request
+        });
+
+        if (response.ok) {
+          loadPendingFriends(); // Reload pending friends
+        } else {
+          console.error('Error accepting friend request');
+            return;
         }
       } catch (error) {
         console.error('Error accepting friend request:', error);
       }
     }
+
+
+
+
 
     async function declineFriendRequest(friendName) {
         const user_token = await window.api.getUserToken();

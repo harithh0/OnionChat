@@ -141,27 +141,73 @@
       }
     }
 
+    async function get_user_SK(real_friend_name){
+        const user_token = await window.api.getUserToken();
+
+        try {
+        const response = await fetch(`${window.API_URL}/get_user_SK/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json', 
+                "Authorization": `Token ${user_token}` 
+            },
+            body: JSON.stringify({ "friend_username" :  real_friend_name})
+            });
+
+
+        if(!response.ok){
+            return null;
+        }
+
+        const data = await response.json();
+        if (data.sk){
+            const my_private = await window.api.getUserPrivate();
+            const decryptedSk = await window.api.decryptMessage(data.sk, my_private)
+            const skArray = decryptedSk.split(',').map(Number);
+            const skBuffer = await window.api.convertSkToBuffer(skArray)
+            return skBuffer;
+        }
+        return null;
+
+      } catch (error) {
+        console.error('Error fetching user SK:', error);
+      }
+    }
+
+
+
 
 
     async function handle_chat(friend, real_friend_name){
 
         const chatroom_id = await get_chatroom_id(friend, real_friend_name);
         const friend_public_key = await get_public_key(friend, real_friend_name);
+        const sk = await get_user_SK(real_friend_name);
+        
+        
+        // const ivBuffer = await window.api.convertIVToBuffer(result.iv);
+        
+        
+        // const result = await window.api.encryptMessageUsingSK('Hello, World!', sk);
+        // console.log('Encrypted Text:', result.encryptedData);
 
-        if (chatroom_id !== null && friend_public_key !== null){
-            window.api.openChatroomWindow(friend, real_friend_name, chatroom_id, friend_public_key);
+        // const dc = await window.api.decryptMessageUsingSK(result.encryptedData, sk, ivBuffer);
+
+
+        if (chatroom_id !== null && friend_public_key !== null && sk !== null){
+            window.api.openChatroomWindow(friend, real_friend_name, chatroom_id, friend_public_key, sk);
             window.close();
             return;
         }
         // open new window of chat 
-        // const user_token = await window.api.getUserToken();
+        const user_token = await window.api.getUserToken();
        
             
-        //     const socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
+            const socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
             
-        //     socket.addEventListener('open', (event) => {
-        //     console.log('Connected to WebSocket server');
-        //     });
+            socket.addEventListener('open', (event) => {
+            console.log('Connected to WebSocket server');
+            });
         // }
 
 

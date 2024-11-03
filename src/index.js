@@ -122,6 +122,13 @@ async function getUserPrivate() {
 }
 
 
+
+async function getUserPublic() {
+  const user_data = await getMainUser();
+  const username = user_data.public_key
+  return username;
+}
+
 async function getUserToken() {
   const user_data = await getMainUser();
   const token = user_data.token
@@ -169,6 +176,97 @@ function generateRSAKeys() {
 }
 
 
+async function generateSK() {
+  return new Promise((resolve, reject) => {
+    crypto.randomBytes(32, (err, buffer) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(buffer);
+      }
+    });
+  });
+}
+
+
+async function convertSkToBuffer(sk){
+  const skBuffer = Buffer.from(sk, 'hex'); // converts hex string to binary (buffer)
+  return skBuffer;
+}
+
+
+async function convertIVToBuffer(iv){
+  const ivBuffer = Buffer.from(iv, 'hex'); // converts hex string to binary (buffer)
+  return ivBuffer;
+}
+
+ipcMain.handle('encrypt-message-sk', (event, plainText, key) => {
+  return encryptMessageUsingSK(plainText, key);
+});
+
+
+
+ipcMain.handle('decrypt-message-sk', (event, encryptedData, key, iv) => {
+  return decryptMessageUsingSK(encryptedData, key, iv);
+});
+
+async function encryptMessageUsingSK(plainText, key) {
+  console.log("key", key)
+  if (key.length !== 32) {
+    throw new Error('Key must be 32 bytes (256 bits) for AES-256 encryption.');
+  }
+  
+  const iv = crypto.randomBytes(16); // Generate a random initialization vector (IV)
+
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  let encrypted = cipher.update(plainText, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  // Return both the encrypted text and the IV, as the IV is needed for decryption
+  return {
+    iv: iv.toString('hex'),
+    encryptedData: encrypted
+  };
+}
+
+function decryptMessageUsingSK(encryptedData, key, iv) {
+  // Validate that the key and IV have the correct lengths
+  if (key.length !== 32) {
+    throw new Error('Key must be 32 bytes (256 bits) for AES-256 decryption.');
+  }
+  if (iv.length !== 16) {
+    throw new Error('IV must be 16 bytes for AES-256-CBC decryption.');
+  }
+
+  // Create a decipher instance
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  
+  // Decrypt the data
+  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
+}
+
+
+
+(async () => {
+  const key = await generateSK(); // Generate or obtain a 32-byte symmetric key
+  const keyHex = key.toString('hex');
+  console.log('Generated Key:', keyHex);
+
+  const result = await encryptMessageUsingSK('Hello, World!', key);
+  console.log('Encrypted Text:', result.encryptedData);
+  console.log('IV:', result.iv);
+
+
+  const ivBuffer = Buffer.from(result.iv, 'hex'); // converts hex string to binary (buffer)
+  console.log("ivBuffer", ivBuffer)
+  const decryptedM = await decryptMessageUsingSK(result.encryptedData, key, ivBuffer)
+  console.log("Decrypted text:", decryptedM)
+})();
+
+
 function encryptMessage(message, public_key){
   const encryptedMessage = crypto.publicEncrypt(public_key, Buffer.from(message));
   return encryptedMessage.toString('base64'); // binary to base64 (text) format (makes it easier to transport over the internet HTTP, JSON)  | proviedes compatbility between devices
@@ -178,7 +276,7 @@ function decryptMessage(encrypted_message, private_key){
   const encryptedMessageBuffer = Buffer.from(encrypted_message, "base64"); // takes a base64 encrypted text
   // Decrypt the message
   const decryptedMessage = crypto.privateDecrypt(private_key, encryptedMessageBuffer);
-  return decryptedMessage.toString('utf8'); // takes it in binary format and converts it into human readable string format
+  return decryptedMessage.toString('utf8'); // takes it in decmial and converts it into human readable string format
 
 }
 
@@ -220,11 +318,24 @@ ipcMain.handle('encrypt-message', (event, message, public_key) => {
   return encryptMessage(message, public_key);
 });
 
+ipcMain.handle('convert-sk-to-buffer', (event, sk) => {
+  return convertSkToBuffer(sk);
+});
 
 
+
+
+ipcMain.handle('convert-iv-to-buffer', (event, iv) => {
+  return convertIVToBuffer(iv);
+});
 ipcMain.handle('generate-rsa-keys', () => {
   return generateRSAKeys();
 });
+
+ipcMain.handle("generate-sk", () => {
+  return generateSK();
+
+})
 
 
 
@@ -247,6 +358,11 @@ ipcMain.handle('get-user-token', () => {
 
 ipcMain.handle('get-user-private', () => {
   return getUserPrivate();
+});
+
+
+ipcMain.handle('get-user-public', () => {
+  return getUserPublic();
 });
 
 
@@ -293,7 +409,7 @@ ipcMain.on('open-view-friends-window', () => {
 
 
 
-ipcMain.on('open-chatroom-window', (event, { friend, realFriendName, chatroomId, friendPublicKey }) => {
+ipcMain.on('open-chatroom-window', (event, { friend, realFriendName, chatroomId, friendPublicKey, sk }) => {
   const chatroomWindow = new BrowserWindow({
     width: 750,
     height: 550,

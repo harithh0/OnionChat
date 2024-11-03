@@ -225,25 +225,27 @@
     let real_friend_name = null;
     let chatroom_id = null;
     let friend_public_key = null;
+    let s_key = null;
     let socket = null; 
     let messagesData = null;
     let currentUser = null;
     let my_private = null
 
 
-    window.api.onChatroomData(async (event, { friend, realFriendName, chatroomId, friendPublicKey }) => {
+    window.api.onChatroomData(async (event, { friend, realFriendName, chatroomId, friendPublicKey, sk }) => {
       
       usernameElement.textContent = realFriendName;
       friend_data = friend;
       real_friend_name = realFriendName;
       chatroom_id = chatroomId;
       friend_public_key = friendPublicKey;
+      s_key = sk;
 
       currentUser = await window.api.getUserName();
       my_private = await window.api.getUserPrivate();
 
       document.getElementById('closeButton').addEventListener('click', () => {
-          window.api.openChatroomWindow(friend, real_friend_name, chatroom_id, friend_public_key);
+          window.api.openChatroomWindow(friend, real_friend_name, chatroom_id, friend_public_key, sk);
 
           window.close();
 
@@ -311,18 +313,31 @@
           if (data.message_type === "new_message") {
             console.log(my_private);
             const decryptedMessage = await window.api.decryptMessage(data.encrypted_message, my_private);
-            // const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
-
-            const newMessage = {
+            const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
+            
+            if (verifySignature === true){
+              const newMessage = {
               senderUsername: real_friend_name,
               content: decryptedMessage,
               timestamp: new Date().toISOString()
-          };
-            messagesData.push(newMessage);
-            loadMessages();
-            console.log('Message from server:', decryptedMessage);
+              };
+                messagesData.push(newMessage);
+                loadMessages();
+                console.log('Message from server:', event.data);
+
+          }else{
+            const newMessage = {
+              senderUsername: real_friend_name,
+              content: "message recieved signature returned false (integrity check failed)",
+              timestamp: new Date().toISOString()
+            };
+              messagesData.push(newMessage);
+              loadMessages();
+              console.log('Message from server:', event.data);
 
           }
+          }
+            
         });
 
 
@@ -462,6 +477,7 @@
 
         const messageElement = document.createElement('div');
         messageElement.classList.add('message');
+        // const decryptedMessage = window.api.decryptMessage(message.content)
         messageElement.innerText = message.content;
 
         console.log("current user", currentUser)
@@ -505,10 +521,11 @@
             return;
           }
 
-          const encryptedMessage = await window.api.encryptMessage(String(messageInput), friend_public_key);
+          const encryptedMessage = await window.api.encryptMessage(String(messageInput.value), friend_public_key);
           const privateKey = await window.api.getUserPrivate();
-          const messageSignature = await window.api.signMessage(String(messageInput), privateKey)
+          const messageSignature = await window.api.signMessage(String(messageInput.value), privateKey)
 
+          
           const payload = {"encrypted_message" : encryptedMessage, "message_signature" : messageSignature}
           const jsonPayload = JSON.stringify(payload);
 

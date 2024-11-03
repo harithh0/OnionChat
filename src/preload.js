@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('api', {
     openViewPendingFriendsWindow: () => ipcRenderer.send('open-view-pending-friends-window'),
     openViewFriendsWindow: () => ipcRenderer.send("open-view-friends-window"),
     // openChatroomWindow: () => ipcRenderer.send("open-chatroom-window"),
-    openChatroomWindow: (friend, realFriendName, chatroomId, friendPublicKey) => ipcRenderer.send('open-chatroom-window', { friend, realFriendName, chatroomId, friendPublicKey}),
+    openChatroomWindow: (friend, realFriendName, chatroomId, friendPublicKey, sk) => ipcRenderer.send('open-chatroom-window', { friend, realFriendName, chatroomId, friendPublicKey, sk}),
     onChatroomData: (callback) => ipcRenderer.on('chatroom-data', callback),
     generateRSAKeys: () => ipcRenderer.invoke("generate-rsa-keys"),
     saveMainUser: (user_data) => ipcRenderer.send('save-main-user', user_data),
@@ -21,7 +21,15 @@ contextBridge.exposeInMainWorld('api', {
     decryptMessage: (encrypted_message, private_key) => ipcRenderer.invoke('decrypt-message', encrypted_message, private_key),
     signMessage: (message, private_key) => ipcRenderer.invoke("sign-message", message, private_key),
     verifyMessage: (message, signature, public_key) => ipcRenderer.invoke("verify-message", message, signature, public_key),
-    
     getUserPrivate: () => ipcRenderer.invoke('get-user-private'),
+    getUserPublic: () => ipcRenderer.invoke('get-user-public'),
+    generateSK: () => ipcRenderer.invoke("generate-sk"),
+    convertSkToBuffer: (sk) => ipcRenderer.invoke("convert-sk-to-buffer", sk),
+    convertIVToBuffer: (iv) => ipcRenderer.invoke("convert-iv-to-buffer", iv),
+    
+    
+    encryptMessageUsingSK: (plainText, key) => ipcRenderer.invoke("encrypt-message-sk", plainText, key),
+    decryptMessageUsingSK: (encryptedData, key, iv) => ipcRenderer.invoke("decrypt-message-sk", encryptedData, key, iv),
+
 
 });
