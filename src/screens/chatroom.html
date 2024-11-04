@@ -228,7 +228,7 @@
     let s_key = null;
     let socket = null; 
     let messagesData = null;
-    let messagesDataNew = [];
+    let newMessageData = [];
     let currentUser = null;
     let my_private = null
 
@@ -324,12 +324,13 @@
             if (verifySignature === true){
               const newMessage = {
               senderUsername: real_friend_name,
-              content: data.encrypted_message,
+              content: decryptedMessage,
               timestamp: new Date().toISOString(),
               iv: data.iv
               };
-                messagesData.push(newMessage); // wrong here as it needs iv
-                loadMessages();
+                appendMessage(newMessage)
+                // messagesData.push(newMessage); // wrong here as it needs iv
+                // loadMessages();
                 console.log('Message from server:', event.data);
 
           }else{
@@ -407,28 +408,28 @@
 
 
 
-    async function send_message(message){
-      if (socket && socket.readyState === WebSocket.OPEN) {
-          // const encryptedMessage = await window.api.encryptMessage(message, friend_public_key);
+    // async function send_message(message){
+    //   if (socket && socket.readyState === WebSocket.OPEN) {
+    //       // const encryptedMessage = await window.api.encryptMessage(message, friend_public_key);
           
           
-          const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
+    //       const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
          
-          const privateKey = await window.api.getUserPrivate();
-          const messageSignature = await window.api.signMessage(message, privateKey)
+    //       const privateKey = await window.api.getUserPrivate();
+    //       const messageSignature = await window.api.signMessage(message, privateKey)
 
-          const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
-          const jsonPayload = JSON.stringify(payload);
+    //       const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
+    //       const jsonPayload = JSON.stringify(payload);
           
-          socket.send(jsonPayload);
-          console.log('Message sent:', jsonPayload);
-          return true;
-          } else {
-            return false;
-          console.error('WebSocket is not open. Ready state:', socket.readyState);
-        }
+    //       socket.send(jsonPayload);
+    //       console.log('Message sent:', jsonPayload);
+    //       return true;
+    //       } else {
+    //         return false;
+    //       console.error('WebSocket is not open. Ready state:', socket.readyState);
+    //     }
 
-      }
+    //   }
 
 
 
@@ -465,7 +466,6 @@ async function loadMessages() {
   console.log("messagesData:", messagesData); // Changed from "nigga" for professionalism
 
   for (const [index, message] of messagesData.entries()) {
-
     const messageDate = formatDate(message.timestamp);
     const messageTime = formatTime(message.timestamp);
 
@@ -500,14 +500,6 @@ async function loadMessages() {
     const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
     messageElement.innerText = decryptedMessage;
 
-    const newMessage = {
-            senderUsername: message.senderUsername,
-            content: decryptedMessage,
-            iv: message.iv,
-            timestamp: new Date().toISOString()
-          };
-    messagesDataNew.push(newMessage)
-
     console.log("current user:", currentUser);
     if (message.senderUsername === currentUser) {
       messageElement.classList.add('sent');
@@ -532,78 +524,6 @@ async function loadMessages() {
 
   chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
 }
-
-
-async function loadNewMessages() {
-  const chatBox = document.getElementById('chatBox');
-  chatBox.innerHTML = ''; // Clear existing messages
-
-  let lastDate = '';
-  let lastTime = '';
-  let messageGroup = null;
-
-  console.log("messagesData:", messagesData); // Changed from "nigga" for professionalism
-
-  for (const [index, message] of messagesDataNew.entries()) {
-
-    const messageDate = formatDate(message.timestamp);
-    const messageTime = formatTime(message.timestamp);
-
-    if (messageDate !== lastDate) {
-      const dateSeparator = document.createElement('div');
-      dateSeparator.classList.add('date-separator');
-      dateSeparator.innerText = `--- ${messageDate} ---`;
-      chatBox.appendChild(dateSeparator);
-      lastDate = messageDate;
-      lastTime = '';
-    }
-
-    if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
-      if (messageGroup) {
-        const timeElement = document.createElement('div');
-        timeElement.classList.add('timestamp');
-        timeElement.innerText = lastTime;
-        messageGroup.appendChild(timeElement);
-        chatBox.appendChild(messageGroup);
-      }
-
-      messageGroup = document.createElement('div');
-      messageGroup.classList.add('message-group');
-      lastTime = messageTime;
-    }
-
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message');
-
-    // Ensure await calls are handled properly
-    messageElement.innerText = message.content;
-
-
-    console.log("current user:", currentUser);
-    if (message.senderUsername === currentUser) {
-      messageElement.classList.add('sent');
-      messageGroup.style.alignItems = 'flex-end';
-    } else {
-      messageElement.classList.add('received');
-      messageGroup.style.alignItems = 'flex-start';
-    }
-
-    messageGroup.appendChild(messageElement);
-
-    // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
-    if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
-      const timeElement = document.createElement('div');
-      timeElement.classList.add('timestamp');
-      timeElement.innerText = messageTime;
-      messageGroup.appendChild(timeElement);
-      chatBox.appendChild(messageGroup);
-      messageGroup = null; // Reset message group
-    }
-  }
-
-  chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
-}
-
 
     const messageInput = document.getElementById('messageInput');
 
@@ -626,6 +546,8 @@ async function loadNewMessages() {
         dateSeparator.innerText = `--- ${messageDate} ---`;
         chatBox.appendChild(dateSeparator);
     }
+
+    
     
     const messageGroup = document.createElement('div');
     messageGroup.classList.add('message-group');
@@ -645,8 +567,13 @@ async function loadNewMessages() {
     messageGroup.appendChild(messageElement);
     
     // Check if we need to add the timestamp
-    const lastMessage = chatBox.lastElementChild?.querySelector('.message:last-child');
-    if (!lastMessage || lastMessage.classList.contains('timestamp') || 
+    const lastMessage = newMessageData[newMessageData.length - 1];
+    // const lastMessageTime = formatTime(lastMessage.timestamp);
+    
+    // this doesnt work correctly yet
+    // issues: Creates already made -- date -- and adds time on every message
+    // solution to implemnt: make array similar to loadmessages and use that to check last message time, etc.
+    if (!lastMessage || null !== messageTime || 
         lastMessage.innerText !== messageTime) {
         const timeElement = document.createElement('div');
         timeElement.classList.add('timestamp');
@@ -656,8 +583,10 @@ async function loadNewMessages() {
     
     chatBox.appendChild(messageGroup);
     chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
-}
     
+  }
+    
+
 
     async function sendMessage() {
       if (socket && socket.readyState === WebSocket.OPEN) {
@@ -682,13 +611,17 @@ async function loadNewMessages() {
 
           const newMessage = {
             senderUsername: currentUser,
-            content: message.content,
+            content: message,
             iv: encryptedMessage.iv,
             timestamp: new Date().toISOString()
           };
 
-          messagesDataNew.push(newMessage);
-          loadNewMessages();
+
+
+          newMessageData.push(newMessage);
+          appendMessage(newMessage);
+          // messagesData.push(newMessage);
+          // loadMessages();
 
           
           messageInput.style.height = 'auto'; // Reset height
