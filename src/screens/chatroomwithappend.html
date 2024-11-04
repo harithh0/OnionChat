@@ -228,7 +228,6 @@
     let s_key = null;
     let socket = null; 
     let messagesData = null;
-    let messagesDataNew = [];
     let currentUser = null;
     let my_private = null
 
@@ -324,11 +323,10 @@
             if (verifySignature === true){
               const newMessage = {
               senderUsername: real_friend_name,
-              content: data.encrypted_message,
-              timestamp: new Date().toISOString(),
-              iv: data.iv
+              content: decryptedMessage,
+              timestamp: new Date().toISOString()
               };
-                messagesData.push(newMessage); // wrong here as it needs iv
+                messagesData.push(newMessage);
                 loadMessages();
                 console.log('Message from server:', event.data);
 
@@ -465,7 +463,6 @@ async function loadMessages() {
   console.log("messagesData:", messagesData); // Changed from "nigga" for professionalism
 
   for (const [index, message] of messagesData.entries()) {
-
     const messageDate = formatDate(message.timestamp);
     const messageTime = formatTime(message.timestamp);
 
@@ -500,14 +497,6 @@ async function loadMessages() {
     const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
     messageElement.innerText = decryptedMessage;
 
-    const newMessage = {
-            senderUsername: message.senderUsername,
-            content: decryptedMessage,
-            iv: message.iv,
-            timestamp: new Date().toISOString()
-          };
-    messagesDataNew.push(newMessage)
-
     console.log("current user:", currentUser);
     if (message.senderUsername === currentUser) {
       messageElement.classList.add('sent');
@@ -532,78 +521,6 @@ async function loadMessages() {
 
   chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
 }
-
-
-async function loadNewMessages() {
-  const chatBox = document.getElementById('chatBox');
-  chatBox.innerHTML = ''; // Clear existing messages
-
-  let lastDate = '';
-  let lastTime = '';
-  let messageGroup = null;
-
-  console.log("messagesData:", messagesData); // Changed from "nigga" for professionalism
-
-  for (const [index, message] of messagesDataNew.entries()) {
-
-    const messageDate = formatDate(message.timestamp);
-    const messageTime = formatTime(message.timestamp);
-
-    if (messageDate !== lastDate) {
-      const dateSeparator = document.createElement('div');
-      dateSeparator.classList.add('date-separator');
-      dateSeparator.innerText = `--- ${messageDate} ---`;
-      chatBox.appendChild(dateSeparator);
-      lastDate = messageDate;
-      lastTime = '';
-    }
-
-    if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
-      if (messageGroup) {
-        const timeElement = document.createElement('div');
-        timeElement.classList.add('timestamp');
-        timeElement.innerText = lastTime;
-        messageGroup.appendChild(timeElement);
-        chatBox.appendChild(messageGroup);
-      }
-
-      messageGroup = document.createElement('div');
-      messageGroup.classList.add('message-group');
-      lastTime = messageTime;
-    }
-
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message');
-
-    // Ensure await calls are handled properly
-    messageElement.innerText = message.content;
-
-
-    console.log("current user:", currentUser);
-    if (message.senderUsername === currentUser) {
-      messageElement.classList.add('sent');
-      messageGroup.style.alignItems = 'flex-end';
-    } else {
-      messageElement.classList.add('received');
-      messageGroup.style.alignItems = 'flex-start';
-    }
-
-    messageGroup.appendChild(messageElement);
-
-    // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
-    if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
-      const timeElement = document.createElement('div');
-      timeElement.classList.add('timestamp');
-      timeElement.innerText = messageTime;
-      messageGroup.appendChild(timeElement);
-      chatBox.appendChild(messageGroup);
-      messageGroup = null; // Reset message group
-    }
-  }
-
-  chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
-}
-
 
     const messageInput = document.getElementById('messageInput');
 
@@ -613,96 +530,92 @@ async function loadNewMessages() {
     });
 
 
-    async function appendMessage(message) {
-    const chatBox = document.getElementById('chatBox');
-    const messageDate = formatDate(message.timestamp);
-    const messageTime = formatTime(message.timestamp);
-    
-    let dateSeparator = document.querySelector(`.date-separator[data-date="${messageDate}"]`);
-    if (!dateSeparator) {
-        dateSeparator = document.createElement('div');
-        dateSeparator.classList.add('date-separator');
-        dateSeparator.dataset.date = messageDate; // Use data attribute to identify
-        dateSeparator.innerText = `--- ${messageDate} ---`;
-        chatBox.appendChild(dateSeparator);
-    }
-    
-    const messageGroup = document.createElement('div');
-    messageGroup.classList.add('message-group');
+  function appendMessage(message) {
+  const chatBox = document.getElementById('chatBox');
+  const messageDate = formatDate(message.timestamp);
+  const messageTime = formatTime(message.timestamp);
 
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message');
-    messageElement.innerText = message.content;
+  let lastDate = chatBox.lastChild?.classList.contains('date-separator') ? chatBox.lastChild.innerText.replace(/--- /, '').replace(/ ---/, '') : '';
+  let lastTime = chatBox.lastChild?.querySelector('.timestamp')?.innerText || '';
 
-    if (message.senderUsername === currentUser) {
-        messageElement.classList.add('sent');
-        messageGroup.style.alignItems = 'flex-end';
-    } else {
-        messageElement.classList.add('received');
-        messageGroup.style.alignItems = 'flex-start';
-    }
-    
-    messageGroup.appendChild(messageElement);
-    
-    // Check if we need to add the timestamp
-    const lastMessage = chatBox.lastElementChild?.querySelector('.message:last-child');
-    if (!lastMessage || lastMessage.classList.contains('timestamp') || 
-        lastMessage.innerText !== messageTime) {
-        const timeElement = document.createElement('div');
-        timeElement.classList.add('timestamp');
-        timeElement.innerText = messageTime;
-        messageGroup.appendChild(timeElement);
-    }
-    
-    chatBox.appendChild(messageGroup);
-    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+  // Add date separator if the date is different
+  if (messageDate !== lastDate) {
+    const dateSeparator = document.createElement('div');
+    dateSeparator.classList.add('date-separator');
+    dateSeparator.innerText = `--- ${messageDate} ---`;
+    chatBox.appendChild(dateSeparator);
+  }
+
+  const messageGroup = document.createElement('div');
+  messageGroup.classList.add('message-group');
+
+  const messageElement = document.createElement('div');
+  messageElement.classList.add('message');
+  
+  // Decrypt message for display
+  messageElement.innerText = decryptedMessage;
+
+  if (message.senderUsername === currentUser) {
+    messageElement.classList.add('sent');
+    messageGroup.style.alignItems = 'flex-end';
+  } else {
+    messageElement.classList.add('received');
+    messageGroup.style.alignItems = 'flex-start';
+  }
+
+  messageGroup.appendChild(messageElement);
+  
+  // Add timestamp
+  const timeElement = document.createElement('div');
+  timeElement.classList.add('timestamp');
+  timeElement.innerText = messageTime;
+  messageGroup.appendChild(timeElement);
+
+  chatBox.appendChild(messageGroup);
+  chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
 }
-    
 
     async function sendMessage() {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-          const messageInput = document.getElementById('messageInput');
-            
-          if (messageInput.value.trim() === ""){
-            return;
-          }
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    const messageInput = document.getElementById('messageInput');
 
-        const message = messageInput.value;
-        const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
-         
-         const privateKey = await window.api.getUserPrivate();
-         const messageSignature = await window.api.signMessage(message, privateKey)
-
-         const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
-
-          const jsonPayload = JSON.stringify(payload);
-
-          socket.send(jsonPayload);
-          console.log('Message sent:', jsonPayload);
-
-          const newMessage = {
-            senderUsername: currentUser,
-            content: message.content,
-            iv: encryptedMessage.iv,
-            timestamp: new Date().toISOString()
-          };
-
-          messagesDataNew.push(newMessage);
-          loadNewMessages();
-
-          
-          messageInput.style.height = 'auto'; // Reset height
-          messageInput.value = ''; // Clear input after sending
-
-          return true;
-          } else {
-            return false;
-          console.error('WebSocket is not open. Ready state:', socket.readyState);
-        }
-
-
-
+    if (messageInput.value.trim() === "") {
+      return;
     }
+
+    const message = messageInput.value;
+    const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
+
+    const privateKey = await window.api.getUserPrivate();
+    const messageSignature = await window.api.signMessage(message, privateKey);
+
+    const payload = { "encrypted_message": encryptedMessage.encryptedData, "message_signature": messageSignature, "iv": encryptedMessage.iv };
+
+    const jsonPayload = JSON.stringify(payload);
+
+    socket.send(jsonPayload);
+    console.log('Message sent:', jsonPayload);
+
+    const newMessage = {
+      senderUsername: currentUser,
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+
+    messagesData.push(newMessage);
+    
+    // Directly append the new message
+    appendMessage(newMessage);
+    
+    messageInput.style.height = 'auto'; // Reset height
+    messageInput.value = ''; // Clear input after sending
+
+    return true;
+  } else {
+    console.error('WebSocket is not open. Ready state:', socket.readyState);
+    return false;
+  }
+}
 
 
     // Add event listener for Enter key
