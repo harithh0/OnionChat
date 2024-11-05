@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
   <title>Chat Room</title>
   <style>
 
@@ -275,7 +277,7 @@
 
 
       document.getElementById('fileInput').addEventListener('change', async function(event) {
-        const user_token = await window.api.getUserToken();
+      const user_token = await window.api.getUserToken();
       const fileInput = document.getElementById('fileInput');
       const file = fileInput.files[0]; // Get the first selected file
 
@@ -303,10 +305,18 @@
           fileName: file.name,
           chatroom_id: chatroom_id,
           message_type: "new_upload",
+          iv: iv,
+          // signature: 
         };
 
         // Send the JSON object through the WebSocket
+
+        // can add verification here to see if it was ACK'd
         await socket.send(JSON.stringify(jsonObject));
+
+        
+
+        
       };
 
 
@@ -552,7 +562,18 @@
 
 
           } else if (data.message_type == "new_upload"){
-            console.log("file recieved");
+            console.log("file recieved", data);
+            // check if signature is valid
+            const formatted_data = {
+              "message_type": "new_upload",
+              "encrypted_file_path": data["encrypted_file_path"],
+              "file_signature": data["file_signature"],
+              "file_name": data["file_name"],
+              "iv": data["file_iv"],
+              "timestamp": new Date().toISOString(),
+              "senderUsername": data["senderUsername"]
+            }
+            appendFileMessage(formatted_data);
           }
 
         });
@@ -679,64 +700,149 @@ async function loadMessages() {
   console.log("messagesData:", messagesData); // Changed from "nigga" for professionalism
 
   for (const [index, message] of messagesData.entries()) {
+    if (message.isFile !== true){
+
+      const messageDate = formatDate(message.timestamp);
+      const messageTime = formatTime(message.timestamp);
+
+      if (messageDate !== lastDate) {
+        const dateSeparator = document.createElement('div');
+        dateSeparator.classList.add('date-separator');
+        dateSeparator.innerText = `--- ${messageDate} ---`;
+        chatBox.appendChild(dateSeparator);
+        lastDate = messageDate;
+        lastTime = '';
+      }
+
+      if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
+        if (messageGroup) {
+          const timeElement = document.createElement('div');
+          timeElement.classList.add('timestamp');
+          timeElement.innerText = lastTime;
+          messageGroup.appendChild(timeElement);
+          chatBox.appendChild(messageGroup);
+        }
+
+        messageGroup = document.createElement('div');
+        messageGroup.classList.add('message-group');
+        lastTime = messageTime;
+      }
+
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message');
+
+      // Ensure await calls are handled properly
+      const ivBuffer = await window.api.convertIVToBuffer(message.iv);
+      const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
+      messageElement.innerText = decryptedMessage;
+
+      console.log("current user:", currentUser);
+      if (message.senderUsername === currentUser) {
+        messageElement.classList.add('sent');
+        messageGroup.style.alignItems = 'flex-end';
+      } else {
+        messageElement.classList.add('received');
+        messageGroup.style.alignItems = 'flex-start';
+      }
+
+      messageGroup.appendChild(messageElement);
+
+      // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
+      if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
+        const timeElement = document.createElement('div');
+        timeElement.classList.add('timestamp');
+        timeElement.innerText = messageTime;
+        messageGroup.appendChild(timeElement);
+        chatBox.appendChild(messageGroup);
+        messageGroup = null; // Reset message group
+      }
+    }else{
     const messageDate = formatDate(message.timestamp);
     const messageTime = formatTime(message.timestamp);
 
-    if (messageDate !== lastDate) {
-      const dateSeparator = document.createElement('div');
-      dateSeparator.classList.add('date-separator');
-      dateSeparator.innerText = `--- ${messageDate} ---`;
-      chatBox.appendChild(dateSeparator);
-      lastDate = messageDate;
-      lastTime = '';
-    }
-
-    if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
-      if (messageGroup) {
-        const timeElement = document.createElement('div');
-        timeElement.classList.add('timestamp');
-        timeElement.innerText = lastTime;
-        messageGroup.appendChild(timeElement);
-        chatBox.appendChild(messageGroup);
+      if (messageDate !== lastDate) {
+        const dateSeparator = document.createElement('div');
+        dateSeparator.classList.add('date-separator');
+        dateSeparator.innerText = `--- ${messageDate} ---`;
+        chatBox.appendChild(dateSeparator);
+        lastDate = messageDate;
+        lastTime = '';
       }
 
-      messageGroup = document.createElement('div');
-      messageGroup.classList.add('message-group');
-      lastTime = messageTime;
+      if (!messageGroup || messageTime !== lastTime || message.senderUsername !== messagesData[index - 1]?.senderUsername) {
+        if (messageGroup) {
+          const timeElement = document.createElement('div');
+          timeElement.classList.add('timestamp');
+          timeElement.innerText = lastTime;
+          messageGroup.appendChild(timeElement);
+          chatBox.appendChild(messageGroup);
+        }
+
+        messageGroup = document.createElement('div');
+        messageGroup.classList.add('message-group');
+        lastTime = messageTime;
+      }
+
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message');
+
+      // Ensure await calls are handled properly
+      // const ivBuffer = await window.api.convertIVToBuffer(message.iv);
+      // const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
+      messageElement.innerText = message.fileName;
+
+      // Create download button
+      const downloadButton = document.createElement('button');
+      downloadButton.classList.add('download-button');
+      downloadButton.innerHTML = '<i class="fas fa-download"></i>'; // Font Awesome download icon
+      downloadButton.style.marginLeft = "10px";
+
+      downloadButton.addEventListener('click', async () => {
+        const fileData = await window.api.downloadFile(message.fileName); // Assuming you have a function to download the file
+        const blob = new Blob([fileData], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = message.fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      messageElement.appendChild(downloadButton);
+
+
+
+      console.log("current user:", currentUser);
+      if (message.senderUsername === currentUser) {
+        messageElement.classList.add('sent');
+        messageGroup.style.alignItems = 'flex-end';
+      } else {
+        messageElement.classList.add('received');
+        messageGroup.style.alignItems = 'flex-start';
+      }
+
+      messageGroup.appendChild(messageElement);
+
+      // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
+      if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
+        const timeElement = document.createElement('div');
+        timeElement.classList.add('timestamp');
+        timeElement.innerText = messageTime;
+        messageGroup.appendChild(timeElement);
+        chatBox.appendChild(messageGroup);
+        messageGroup = null; // Reset message group
+      }
     }
 
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message');
 
-    // Ensure await calls are handled properly
-    const ivBuffer = await window.api.convertIVToBuffer(message.iv);
-    const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
-    messageElement.innerText = decryptedMessage;
-
-    console.log("current user:", currentUser);
-    if (message.senderUsername === currentUser) {
-      messageElement.classList.add('sent');
-      messageGroup.style.alignItems = 'flex-end';
-    } else {
-      messageElement.classList.add('received');
-      messageGroup.style.alignItems = 'flex-start';
+    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
     }
 
-    messageGroup.appendChild(messageElement);
-
-    // If it's the last message or the next message is from a different sender or at a different time, add the timestamp
-    if (index === messagesData.length - 1 || message.senderUsername !== messagesData[index + 1]?.senderUsername || formatTime(messagesData[index + 1]?.timestamp) !== messageTime) {
-      const timeElement = document.createElement('div');
-      timeElement.classList.add('timestamp');
-      timeElement.innerText = messageTime;
-      messageGroup.appendChild(timeElement);
-      chatBox.appendChild(messageGroup);
-      messageGroup = null; // Reset message group
-    }
+    // do things for file messages here
+    
   }
-
-  chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
-}
 
     const messageInput = document.getElementById('messageInput');
 
@@ -799,6 +905,82 @@ async function loadMessages() {
     
   }
     
+
+  async function appendFileMessage(message) {
+    const chatBox = document.getElementById('chatBox');
+    const messageDate = formatDate(message.timestamp);
+    const messageTime = formatTime(message.timestamp);
+    
+    let dateSeparator = document.querySelector(`.date-separator[data-date="${messageDate}"]`);
+    if (!dateSeparator) {
+        dateSeparator = document.createElement('div');
+        dateSeparator.classList.add('date-separator');
+        dateSeparator.dataset.date = messageDate; // Use data attribute to identify
+        dateSeparator.innerText = `--- ${messageDate} ---`;
+        chatBox.appendChild(dateSeparator);
+    }
+
+    
+    
+    const messageGroup = document.createElement('div');
+    messageGroup.classList.add('message-group');
+
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
+    messageElement.innerText = message.file_name;
+
+
+          // Create download button
+      const downloadButton = document.createElement('button');
+      downloadButton.classList.add('download-button');
+      downloadButton.innerHTML = '<i class="fas fa-download"></i>'; // Font Awesome download icon
+      downloadButton.style.marginLeft = "10px";
+
+      downloadButton.addEventListener('click', async () => {
+        const fileData = await window.api.downloadFile(message.fileName); // Assuming you have a function to download the file
+        const blob = new Blob([fileData], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = message.fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+
+      messageElement.appendChild(downloadButton);
+
+    if (message.senderUsername === currentUser) {
+        messageElement.classList.add('sent');
+        messageGroup.style.alignItems = 'flex-end';
+    } else {
+        messageElement.classList.add('received');
+        messageGroup.style.alignItems = 'flex-start';
+    }
+    
+    messageGroup.appendChild(messageElement);
+    
+    // Check if we need to add the timestamp
+    const lastMessage = newMessageData[newMessageData.length - 1];
+    // const lastMessageTime = formatTime(lastMessage.timestamp);
+    
+    // this doesnt work correctly yet
+    // issues: Creates already made -- date -- and adds time on every message
+    // solution to implemnt: make array similar to loadmessages and use that to check last message time, etc.
+    if (!lastMessage || null !== messageTime || 
+        lastMessage.innerText !== messageTime) {
+        const timeElement = document.createElement('div');
+        timeElement.classList.add('timestamp');
+        timeElement.innerText = messageTime;
+        messageGroup.appendChild(timeElement);
+    }
+    
+    chatBox.appendChild(messageGroup);
+    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+    
+  }
+
 
 
     async function sendMessage() {
