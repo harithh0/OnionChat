@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('api', {
     verifyMessage: (message, signature, public_key) => ipcRenderer.invoke("verify-message", message, signature, public_key),
     getUserPrivate: () => ipcRenderer.invoke('get-user-private'),
     getUserPublic: () => ipcRenderer.invoke('get-user-public'),
+    getUserId: () => ipcRenderer.invoke('get-user-id'),
     generateSK: () => ipcRenderer.invoke("generate-sk"),
     convertSkToBuffer: (sk) => ipcRenderer.invoke("convert-sk-to-buffer", sk),
     convertIVToBuffer: (iv) => ipcRenderer.invoke("convert-iv-to-buffer", iv),

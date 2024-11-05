@@ -121,6 +121,14 @@ async function getUserPrivate() {
   return username;
 }
 
+async function getUserId() {
+  const user_data = await getMainUser();
+  const user_id = user_data.id
+  return user_id;
+}
+
+
+
 
 
 async function getUserPublic() {
@@ -363,6 +371,10 @@ ipcMain.handle('get-user-private', () => {
 
 ipcMain.handle('get-user-public', () => {
   return getUserPublic();
+});
+
+ipcMain.handle('get-user-id', () => {
+  return getUserId();
 });
 
 

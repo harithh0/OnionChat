@@ -178,6 +178,12 @@
   display: none;
   
 }
+
+#user_connection_status{
+  font-weight: bold;
+
+}
+
   </style>
 </head>
 
@@ -192,7 +198,7 @@
 
   </div>
   <div class="top-center">
-    <p>Chatting with <span id="usernameElement"></span></p>
+    <p>Chatting with <span id="usernameElement"></span>: <span id="user_connection_status"></span></p>
 
   </div>
   <div class="chat-container"> 
@@ -200,8 +206,8 @@
     <div class="chat-box" id="chatBox">
       <!-- Messages will be dynamically inserted here -->
     </div>
-    
-    <div class="input-container">
+    <div class="typing-animation" id="user_typing" style="display: none; margin-left:10px;"></div>
+    <div id="input-container-id" class="input-container">
       <div class="file-input-container">
         <input type="file" class="file-input" id="fileInput">
         <span class="file-input-icon">&#128206;</span> <!-- Paper clip icon -->
@@ -231,6 +237,8 @@
     let newMessageData = [];
     let currentUser = null;
     let my_private = null
+    let connectedUsers = [];
+    let user_id = null;
 
 
     window.api.onChatroomData(async (event, { friend, realFriendName, chatroomId, friendPublicKey, sk }) => {
@@ -242,6 +250,7 @@
       friend_public_key = friendPublicKey;
       s_key = sk;
 
+      user_id = await window.api.getUserId();
       currentUser = await window.api.getUserName();
       my_private = await window.api.getUserPrivate();
 
@@ -265,9 +274,115 @@
       // if socket is null still we will display connection to server failed
 
 
+      const messageInput = document.getElementById('messageInput');
+      let typingTimeout; // For detecting inactivity
+      let isTyping = false; // Track if typing indicator is active
+
+      // Function to send "user_typing" payload
+      function sendTypingPayload() {
+          if (!isTyping) {
+              const payload = {
+                  message_type: 'user_typing',
+              };
+              socket.send(JSON.stringify(payload));
+              console.log("sent this typing:", JSON.stringify(payload));
+              isTyping = true; // Mark typing indicator as active
+          }
+      }
+
+      // Function to send "user_stopped_typing" payload
+      function sendStoppedTypingPayload() {
+          const payload = {
+              message_type: 'user_stopped_typing',
+          };
+          socket.send(JSON.stringify(payload));
+          console.log("sent this stopped typing:", JSON.stringify(payload));
+          isTyping = false; // Reset typing indicator
+      }
+
+      // Event listener for input with debounce
+      messageInput.addEventListener('input', function() {
+          // Send typing payload once when typing starts
+          sendTypingPayload();
+
+          // Clear any existing stop-typing timer
+          clearTimeout(typingTimeout);
+
+          // Set a new timeout to send "user_stopped_typing" if no input for 2 seconds
+          typingTimeout = setTimeout(() => {
+              sendStoppedTypingPayload();
+          }, 2000); // 2000 ms = 2 seconds
+      });
 
 
+      
+      const updateUserStatus = async () => {
+        if (connectedUsers.length === 2) {
+          user_connection_status.textContent = "online";
+          user_connection_status.style.color = "green";
+        } else {
+          const time_ago = await get_user_last_online();
+          if (time_ago === null){
+            user_connection_status.textContent = `Offline`;
+          }else{
+            user_connection_status.textContent = `Last seen ${time_ago}`;
+          }
+          user_connection_status.style.color = "grey";
 
+        }
+    };
+
+        // Call the function to update the user status
+        updateUserStatus();
+
+
+        function timeAgo(timestamp) {
+          const now = new Date();
+          const past = new Date(timestamp);
+          const seconds = Math.floor((now - past) / 1000);
+
+          let interval = Math.floor(seconds / 31536000);
+          if (interval >= 1) return interval + " year" + (interval > 1 ? "s" : "") + " ago";
+
+          interval = Math.floor(seconds / 2592000);
+          if (interval >= 1) return interval + " month" + (interval > 1 ? "s" : "") + " ago";
+
+          interval = Math.floor(seconds / 604800);
+          if (interval >= 1) return interval + " week" + (interval > 1 ? "s" : "") + " ago";
+
+          interval = Math.floor(seconds / 86400);
+          if (interval >= 1) return interval + " day" + (interval > 1 ? "s" : "") + " ago";
+
+          interval = Math.floor(seconds / 3600);
+          if (interval >= 1) return interval + " hour" + (interval > 1 ? "s" : "") + " ago";
+
+          interval = Math.floor(seconds / 60);
+          if (interval >= 1) return interval + " minute" + (interval > 1 ? "s" : "") + " ago";
+
+          return seconds + " second" + (seconds > 1 ? "s" : "") + " ago";
+        }
+
+        async function get_user_last_online(){
+          const user_token = await window.api.getUserToken();
+          
+          const response = await fetch(`${API_URL}/get_users_last_online/`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', "Authorization" : `Token ${user_token}`},
+              body: JSON.stringify({ "user_to_get" : realFriendName, "chatroom_id" : chatroomId }), // automatically does "username" : username ... and converts to string
+          });
+
+          const data = await response.json();
+          const user_last_online_time = data.last_online;
+          if (user_last_online_time === null){
+            return null;
+          }else{
+            const time_ago = await timeAgo(user_last_online_time)
+            return time_ago;
+          }
+
+
+        }
+      
 
 
 
@@ -314,6 +429,8 @@
 
         socket.addEventListener('message', async (event) => {
           const data = JSON.parse(event.data);
+          console.log('Message from server:', data);
+
           if (data.message_type === "new_message") {
             console.log(my_private);
             // const decryptedMessage = await window.api.decryptMessage(data.encrypted_message, my_private);
@@ -321,6 +438,7 @@
             const decryptedMessage = await window.api.decryptMessageUsingSK(data.encrypted_message, s_key, ivBuffer);
             const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
             console.log("decrypted message", decryptedMessage)
+           
             if (verifySignature === true){
               const newMessage = {
               senderUsername: real_friend_name,
@@ -331,24 +449,45 @@
                 appendMessage(newMessage)
                 // messagesData.push(newMessage); // wrong here as it needs iv
                 // loadMessages();
-                console.log('Message from server:', event.data);
 
-          }else{
-            const newMessage = {
-              senderUsername: real_friend_name,
-              content: "message recieved signature returned false (integrity check failed)",
-              timestamp: new Date().toISOString()
-            };
-              messagesData.push(newMessage);
-              loadMessages();
-              console.log('Message from server:', event.data);
+            }else{
+              const newMessage = {
+                senderUsername: real_friend_name,
+                content: "message recieved signature returned false (integrity check failed)",
+                timestamp: new Date().toISOString()
+              };
+            messagesData.push(newMessage);
+            loadMessages();
+            console.log('Message from server:', event.data);
 
           }
+          } else if (data.message_type === "user_typing_message"){
+            // do typing animation  such as friedname is typing... on the top left of the input box
+            const typingIndicator = document.getElementById('user_typing');
+            typingIndicator.innerText = `${realFriendName} is typing...`
+            typingIndicator.style.display = 'block';
+
+
+          } else if (data.message_type === "user_stopped_typing_message"){
+            // remove typing animation
+            const typingIndicator = document.getElementById('user_typing');
+            typingIndicator.style.display = 'none';
+
+          } else if (data.message_type === "user_joined"){
+            connectedUsers = data.connected_users;
+            updateUserStatus();
+
+          } else if (data.message_type == "user_disconnected"){
+            connectedUsers = data.connected_users;
+            updateUserStatus();
+
+
           }
-            
+
         });
 
 
+        
         socket.addEventListener('close', (event) => {
           console.log('Disconnected from WebSocket server');
           statusElement.textContent = 'Disconnected';
@@ -356,6 +495,7 @@
           statusElement.style.textAlign = 'center';
           document.getElementById('closeButton').style.display = 'block';
 
+          
 
         });
 
@@ -367,6 +507,7 @@
           document.getElementById('closeButton').style.display = 'block';
 
 
+
         });
 
       } catch (error) {
@@ -375,6 +516,7 @@
 
       }
     }
+
 
 
     async function get_messages_from_db(){
@@ -602,7 +744,7 @@ async function loadMessages() {
          const privateKey = await window.api.getUserPrivate();
          const messageSignature = await window.api.signMessage(message, privateKey)
 
-         const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
+         const payload = {"message_type" : "new_message", "encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
 
           const jsonPayload = JSON.stringify(payload);
 
