@@ -225,6 +225,8 @@
 
   <script>
 
+    
+
 
 
     let friend_data = null;
@@ -268,6 +270,71 @@
           console.log('Calling loadMessages with s_key:', s_key); // Log before calling loadMessages
           loadMessages();
       })
+
+
+
+
+      document.getElementById('fileInput').addEventListener('change', async function(event) {
+        const user_token = await window.api.getUserToken();
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0]; // Get the first selected file
+
+      if (!file) {
+        alert("Please select a file!");
+        return;
+      }
+
+      // Prepare form data
+      // const formData = new FormData();
+      const fileText = await file.text();
+      const { iv, encryptedData } = await window.api.encryptMessageUsingSK(fileText, s_key);
+      const encryptedBlob = new Blob([iv, encryptedData], { type: file.type });
+
+
+      // we have to manually create a json object so it can be sent through the web socket as formData cannot be convertd to json using JSON.stringify()
+      const reader = new FileReader();
+      reader.readAsDataURL(encryptedBlob);
+      reader.onloadend = async function() {
+        const base64data = reader.result.split(',')[1]; // Get the base64 string
+
+        // Construct the JSON object
+        const jsonObject = {
+          file: base64data,
+          fileName: file.name,
+          chatroom_id: chatroom_id,
+          message_type: "new_upload",
+        };
+
+        // Send the JSON object through the WebSocket
+        await socket.send(JSON.stringify(jsonObject));
+      };
+
+
+      // this is to send it via HTTP
+      // formData.append('file', encryptedBlob, file.name);
+      // formData.append('chatroom_id', chatroom_id); 
+      // formData.append("message_type", "new_upload");
+      // await socket.send(JSON.stringify(formData));
+      // Send the file with fetch
+      // try {
+      //   const response = await fetch(`${API_URL}/upload_file/`, {
+      //     method: 'POST',
+      //     body: formData,
+      //     headers: {"Authorization" : `Token ${user_token}` },
+      //   });
+
+      //   if (response.ok) {
+      //     console.log('File uploaded successfully:');
+      //   } else {
+      //     console.error('Failed to upload file:', response.statusText);
+      //   }
+      // } catch (error) {
+      //   console.error('Error uploading file:', error);
+      // }
+    })
+
+
+
 
 
 
@@ -317,6 +384,8 @@
 
       
       const updateUserStatus = async () => {
+        console.log(connectedUsers)
+
         if (connectedUsers.length === 2) {
           user_connection_status.textContent = "online";
           user_connection_status.style.color = "green";
@@ -482,6 +551,8 @@
             updateUserStatus();
 
 
+          } else if (data.message_type == "new_upload"){
+            console.log("file recieved");
           }
 
         });
