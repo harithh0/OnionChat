@@ -749,6 +749,9 @@ async function loadMessages() {
           const jsonPayload = JSON.stringify(payload);
 
           socket.send(jsonPayload);
+          socket.send(JSON.stringify({"message_type": 'user_stopped_typing'}));
+          isTyping = false; // Reset typing indicator
+
           console.log('Message sent:', jsonPayload);
 
           const newMessage = {
