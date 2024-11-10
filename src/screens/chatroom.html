@@ -186,6 +186,21 @@
 
 }
 
+#loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgb(255, 255, 255, 1);
+      color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5em;
+      z-index: 1000;
+      display: none; /* Initially hidden */
+    }
   </style>
 </head>
 
@@ -193,7 +208,9 @@
 
 
 <body>
-
+  <div id="loading-overlay">
+    Loading & decrypting messages, please wait...
+  </div>
   <div class="top-right">
     <p>status: <span id="statusElement"></span></p>
     <button id="closeButton">Reconnect</button>
@@ -243,7 +260,7 @@
     let my_private = null
     let connectedUsers = [];
     let user_id = null;
-
+    let messages_loaded = false;
 
     window.api.onChatroomData(async (event, { friend, realFriendName, chatroomId, friendPublicKey, sk }) => {
       
@@ -282,12 +299,13 @@
       const file = fileInput.files[0]; // Get the first selected file
 
       if (!file) {
-        alert("Please select a file!");
         return;
       }
 
       // Prepare form data
       // const formData = new FormData();
+
+      
       const fileText = await file.text();
       const { iv, encryptedData } = await window.api.encryptMessageUsingSK(fileText, s_key);
       const encryptedBlob = new Blob([iv, encryptedData], { type: file.type });
@@ -297,7 +315,7 @@
       const reader = new FileReader();
       reader.readAsDataURL(encryptedBlob);
       reader.onloadend = async function() {
-        const base64data = reader.result.split(',')[1]; // Get the base64 string
+      const base64data = reader.result.split(',')[1]; // Get the base64 string
 
         // Construct the JSON object
         const jsonObject = {
@@ -690,6 +708,9 @@
 
 
 async function loadMessages() {
+  if (!messages_loaded) {
+    document.getElementById('loading-overlay').style.display = 'flex';
+  }
   const chatBox = document.getElementById('chatBox');
   chatBox.innerHTML = ''; // Clear existing messages
 
@@ -798,16 +819,18 @@ async function loadMessages() {
       downloadButton.style.marginLeft = "10px";
 
       downloadButton.addEventListener('click', async () => {
-        const fileData = await window.api.downloadFile(message.fileName); // Assuming you have a function to download the file
-        const blob = new Blob([fileData], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = message.fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const fileData = await downloadFile(message.fileData, message.iv);
+        // await downloadFile(message)
+        
+        // const blob = new Blob([fileData], { type: 'application/octet-stream' });
+        // const url = URL.createObjectURL(blob);
+        // const a = document.createElement('a');
+        // a.href = url;
+        // a.download = message.fileName;
+        // document.body.appendChild(a);
+        // a.click();
+        // document.body.removeChild(a);
+        // URL.revokeObjectURL(url);
       });
 
       messageElement.appendChild(downloadButton);
@@ -839,6 +862,9 @@ async function loadMessages() {
 
     chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
     }
+    messages_loaded = true;
+    document.getElementById('loading-overlay').style.display = 'none';
+
 
     // do things for file messages here
     
@@ -930,7 +956,7 @@ async function loadMessages() {
     messageElement.innerText = message.file_name;
 
 
-          // Create download button
+        // Create download button
       const downloadButton = document.createElement('button');
       downloadButton.classList.add('download-button');
       downloadButton.innerHTML = '<i class="fas fa-download"></i>'; // Font Awesome download icon
@@ -938,6 +964,9 @@ async function loadMessages() {
 
       downloadButton.addEventListener('click', async () => {
         const fileData = await window.api.downloadFile(message.fileName); // Assuming you have a function to download the file
+        // await downloadFile(message)
+        alert(message.encrypted_file_path);
+        
         const blob = new Blob([fileData], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -982,6 +1011,39 @@ async function loadMessages() {
   }
 
 
+  async function downloadFile(filePath, message_iv){
+    const user_token = await window.api.getUserToken();
+    const response = await fetch(`${API_URL}${filePath}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', "Authorization" : `Token ${user_token}`},
+        // body: JSON.stringify({ "filePath" : filePath, "chatroom_id" : chatroomId }), // automatically does "username" : username ... and converts to string
+    });
+
+    if (!response.ok){
+      return null;
+    }else{
+
+    const blob = await response.blob(); // gets binary data in this case its a url to a file
+    const ivBuffer = await window.api.convertIVToBuffer(message_iv);
+    const base64Text = await blob.text();
+    const base64Data = base64Text.includes(",") ? base64Text.split(",")[1] : base64Text;
+    const binaryString = atob(base64Data);
+
+    const decryptedData = await window.api.decryptMessageUsingSK(String(binaryString), s_key, ivBuffer);
+    const decryptedBlob = new Blob([decryptedData], { type: 'application/octet-stream' });
+
+    // asks for save location:
+    const url = window.URL.createObjectURL(decryptedBlob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = filePath.split('/').pop(); // Extract the file name from the file path
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  }
 
     async function sendMessage() {
       if (socket && socket.readyState === WebSocket.OPEN) {

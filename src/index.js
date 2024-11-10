@@ -237,7 +237,76 @@ async function encryptMessageUsingSK(plainText, key) {
   };
 }
 
+const ALGORITHM = 'aes-256-cbc';
+
+function encryptFile(fileData, key) {
+  // Generate a random initialization vector (IV)
+  const iv = crypto.randomBytes(16);
+
+  // Create a cipher instance with AES-256-CBC algorithm
+  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
+
+  // Encrypt the file data
+  let encryptedData = cipher.update(Buffer.from(fileData));
+  encryptedData = Buffer.concat([encryptedData, cipher.final()]);
+
+  // Return the encrypted data and IV in Base64 format
+  return {
+    encryptedData: encryptedData.toString('base64'),
+    iv: iv.toString('base64'),
+  };
+}
+
+async function decryptFile(encryptedData, key, iv) {
+  console.log("key", key);
+  if (key.length !== 32) {
+    throw new Error('Key must be 32 bytes (256 bits) for AES-256 decryption.');
+  }
+  
+  // Convert iv from hex back to a buffer
+  const ivBuffer = Buffer.from(iv, 'hex');
+
+  // Create a decipher with the same key and IV used for encryption
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, ivBuffer);
+
+  // Decrypt the data
+  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
+}
+
+// IPC handler for encryption
+ipcMain.handle('encrypt-file', async (event, fileData, key) => {
+  return encryptFile(fileData, key);
+});
+
+
+// IPC handler for decryption
+ipcMain.handle('decrypt-file', async (event, encryptedData, key, iv) => {
+
+  return decryptFile(encryptedData, key, iv);
+  
+});
+
+
+ipcMain.handle('convert-arraybuffer-to-buffer', (event, arrayBuffer) => {
+  // Convert the ArrayBuffer to a Buffer and return it
+  return Buffer.from(arrayBuffer);
+});
+
+async function getFilePath(file){
+  const filePath = file.path;
+  return filePath;
+}
+
+ipcMain.handle('get-file-path', async (event, file) => {
+  return getFilePath(file);
+});
+
 function decryptMessageUsingSK(encryptedData, key, iv) {
+
+  // encrypted data must be in hex format!!
 
   // Validate that the key and IV have the correct lengths
   if (key.length !== 32) {
@@ -604,3 +673,54 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+const { spawn } = require('child_process');
+
+function runPythonScript(data, key, operation) {
+  return new Promise((resolve, reject) => {
+      const pythonProcess = spawn('python3', ['src/main.py']);
+
+      // Prepare data to send to Python
+      const input = JSON.stringify({ data, key, operation });
+
+      // Send data to Python script
+      pythonProcess.stdin.write(input);
+      pythonProcess.stdin.end();
+
+      // Capture Python output
+      let result = '';
+      pythonProcess.stdout.on('data', (data) => {
+          result += data.toString();
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+          console.error(`Error: ${data}`);
+      });
+
+      pythonProcess.on('close', () => {
+          try {
+              const output = JSON.parse(result);
+              resolve(output.result);
+          } catch (error) {
+              reject(error);
+          }
+      });
+  });
+}
+
+async function encryptData(data, key) {
+  const encryptedData = await runPythonScript(data, key, 'encrypt');
+  console.log("Encrypted Data:", encryptedData);
+  return encryptedData;
+}
+
+// Decrypt data
+async function decryptData(encryptedData, key) {
+  const decryptedData = await runPythonScript(encryptedData, key, 'decrypt');
+  console.log("Decrypted Data:", decryptedData);
+  return decryptedData;
+}
+
+ipcMain.handle('encrypt-data', (event, data, key) => {
+  return encryptData(data, key);
+});

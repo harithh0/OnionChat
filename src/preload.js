@@ -32,5 +32,11 @@ contextBridge.exposeInMainWorld('api', {
     encryptMessageUsingSK: (plainText, key) => ipcRenderer.invoke("encrypt-message-sk", plainText, key),
     decryptMessageUsingSK: (encryptedData, key, iv) => ipcRenderer.invoke("decrypt-message-sk", encryptedData, key, iv),
 
+    encryptFile: (fileData, key) => ipcRenderer.invoke("encrypt-file", fileData, key),
+    decryptFile: (encryptedData, key, iv) => ipcRenderer.invoke("decrypt-file", encryptedData, key, iv),
 
+    getFilePath: (file) => ipcRenderer.invoke("get-file-path", file),
+
+    convertArrayBufferToBuffer: (arrayBuffer) => ipcRenderer.invoke("convert-arraybuffer-to-buffer", arrayBuffer),
+    encryptData: (data, key) => ipcRenderer.invoke("encrypt-data", data, key),
 });
