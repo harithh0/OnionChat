@@ -8,8 +8,48 @@ const crypto = require('crypto');
 const { spawn } = require('child_process');
 
 
+// tor config:
+const torRequest = require('tor-request');
+const axios = require('axios');
 let torProcess;
 let loadingWindow;
+
+
+
+torRequest.setTorAddress('127.0.0.1', 9050);
+
+
+async function torsend(url, options) {
+  const { method, headers, data } = options;
+
+  return new Promise((resolve, reject) => {
+      torRequest.request({
+          url,
+          method,
+          headers,
+          body: JSON.stringify(data),
+      }, (error, response, body) => {
+          if (error) return reject(error);
+          resolve({ status: response.statusCode, data: body });
+      });
+  });
+}
+
+ipcMain.handle('torsend', async (event, url, options) => {
+  try {
+      const response = await torsend(url, options);
+      return response;
+  } catch (error) {
+      console.error('Tor request failed:', error);
+      throw error;
+  }
+});
+
+// tor config end
+
+
+
+
 
 // Get the path to the user's application data directory
 // will be stored in /.config/appname for linux
