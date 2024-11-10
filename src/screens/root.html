@@ -12,30 +12,30 @@
       justify-content: flex-start;
       height: 100vh;
       margin: 0;
-      background-color: #f0f0f0; /* Optional: Set a background color */
-      font-family: Arial, sans-serif; /* Optional: Change the font */
+      background-color: #f0f0f0; 
+      font-family: Arial, sans-serif; 
     }
     h2 {
-      margin-top: 20px 0; /* Add some margin around the header */
-      color: #333; /* Optional: Change the text color */
+      margin-top: 20px 0; 
+      color: #333; 
     }
     img {
-      width: 120px; /* Set a fixed width for the profile picture */
-      height: auto; /* Maintain aspect ratio */
+      width: 120px; 
+      height: auto; 
     }
     .button {
-      background-color: #007BFF; /* Button color */
-      color: white; /* Text color */
-      border: none; /* Remove border */
-      border-radius: 5px; /* Round corners */
-      padding: 10px 20px; /* Add padding */
-      margin: 5px; /* Space between buttons */
-      cursor: pointer; /* Change cursor on hover */
-      font-size: 16px; /* Font size */
-      transition: background-color 0.3s; /* Transition effect */
+      background-color: #007BFF; 
+      color: white; 
+      border: none; 
+      border-radius: 5px; 
+      padding: 10px 20px; 
+      margin: 5px;
+      cursor: pointer; 
+      font-size: 16px; 
+      transition: background-color 0.3s;
     }
     .button:hover {
-      background-color: #0056b3; /* Darker blue on hover */
+      background-color: #0056b3; 
     }
   </style>
 </head>
@@ -52,7 +52,6 @@
   <script>
 
 
-    // Call the getUserName method and update the HTML
     window.api.getUserName().then(username => {
       document.getElementById('username').textContent = username ? `Hello, ${username}` : 'Username not found';
     }).catch(error => {
@@ -60,23 +59,18 @@
       document.getElementById('username').textContent = 'Error loading username';
     });
     
-    // Add event listeners for buttons (if needed)
     document.getElementById('addFriendButton').addEventListener('click', () => {
-      // Handle add friend logic
       console.log('Add Friend button clicked');
     });
 
     document.getElementById('viewPendingRequestsButton').addEventListener('click', () => {
-      // Handle view pending requests logic
       console.log('View Pending Friend Requests button clicked');
     });
 
     document.getElementById('viewFriendsButton').addEventListener('click', () => {
-      // Handle view friends logic
       console.log('View Friends button clicked');
     });
 
-    // Add event listeners for buttons
       document.getElementById('addFriendButton').addEventListener('click', () => {
         window.api.openAddFriendWindow();
       });

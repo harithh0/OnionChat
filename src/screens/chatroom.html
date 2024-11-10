@@ -33,18 +33,18 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       display: flex;
       flex-direction: column;
-      overflow: hidden; /* Prevent overflow */
+      overflow: hidden; 
       margin-top:55px;
 
     }
 
     .chat-box {
       flex-grow: 1;
-      overflow-y: auto; /* Enable vertical scrolling */
+      overflow-y: auto; 
       padding: 10px;
       display: flex;
       flex-direction: column;
-      overflow-x: hidden; /* Prevent horizontal scrolling */
+      overflow-x: hidden; 
     }
 
     .message-container {
@@ -60,7 +60,7 @@
       border-radius: 18px;
       font-size: 15px;
       line-height: 1.5;
-      word-wrap: break-word; /* Allow wrapping for long messages */
+      word-wrap: break-word; 
     }
 
     .message.received {
@@ -105,7 +105,6 @@
       margin-top: 5px;
     }
 
-    /* Input area */
     .input-container {
       display: flex;
       align-items: center;
@@ -120,9 +119,9 @@
       border: 1px solid #ddd;
       border-radius: 18px;
       outline: none;
-      resize: none; /* Prevent resizing */
-      overflow: hidden; /* Hide overflow */
-      max-height: 150px; /* Optional max height */
+      resize: none;
+      overflow: hidden;
+      max-height: 150px;
     }
 
     .input-container button {
@@ -164,9 +163,9 @@
     text-align: right;
     margin-right: 10px;
     width: 100%;
-    background-color: #f1f1f1; /* Optional: Add background color */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional: Add shadow for better visibility */
-    z-index: 1000; /* Ensure it stays on top of other elements */
+    background-color: #f1f1f1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+    z-index: 1000; 
 }
 
 .top-center {
@@ -174,7 +173,7 @@
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1000; /* Ensure it stays on top of other elements */
+    z-index: 1000;
 }
 #closeButton{
   display: none;
@@ -199,7 +198,7 @@
       align-items: center;
       font-size: 1.5em;
       z-index: 1000;
-      display: none; /* Initially hidden */
+      display: none; 
     }
   </style>
 </head>
@@ -228,7 +227,7 @@
     <div class="typing-animation" id="user_typing" style="display: none; margin-left:10px;"></div>
     <div id="input-container-id" class="input-container">
       <div class="file-input-container">
-        <input type="file" class="file-input" id="fileInput">
+        <input type="file" class="file-input" id="fileInput" accept=".txt">
         <span class="file-input-icon">&#128206;</span> <!-- Paper clip icon -->
       </div>
       <textarea id="messageInput" placeholder="Type a message..."></textarea>
@@ -282,7 +281,6 @@
 
         });
 
-      //display connecting..
       connect_websocket()
       .then(() => get_messages_from_db())
       .then(() => {
@@ -302,17 +300,30 @@
         return;
       }
 
-      // Prepare form data
-      // const formData = new FormData();
+      if (file.type !== 'text/plain') {
+            alert('Please select a .txt file.');
+            fileInput.value = '';
+            return;
+        }
+
+
+        // Check if the file size is less than or equal to 5 MB (5 * 1024 * 1024 bytes)
+        const maxSizeInBytes = 5 * 1024 * 1024;
+        if (file.size > maxSizeInBytes) {
+            alert('File size must be less than or equal to 5 MB.');
+            fileInput.value = ''; 
+            return;
+        }
+
 
       const reader = new FileReader();
 
-      // Define the onload event handler
       reader.onload = async function(e) {
-          const binaryData = new Uint8Array(e.target.result); // Convert ArrayBuffer to Uint8Array
+        const binaryData = new Uint8Array(e.target.result); // Convert ArrayBuffer to Uint8Array
+        const dataString = Array.from(binaryData).join(",");
 
           try {
-              const {ciphertext, iv} = await window.api.encryptData(String(binaryData), s_key);
+              const {ciphertext, iv} = await window.api.encryptData(dataString, s_key);
               console.log(`Encrypted Data: ${JSON.stringify(ciphertext)}`);
           
               const jsonObject = {
@@ -324,7 +335,7 @@
               // signature: 
             };
 
-              //   // can add verification here to see if it was ACK'd
+              // can add verification here to see if it was ACK'd
               await socket.send(JSON.stringify(jsonObject));
 
           
@@ -332,67 +343,17 @@
               console.error('Encryption failed:', error);
           }
 
-            // Construct the JSON object
 
 
-          //   // Send the JSON object through the WebSocket
 
 
       };
 
-      // Read the file as an ArrayBuffer
-      reader.readAsArrayBuffer(file);
-
-
-      // Read the file as an ArrayBuffer (binary data)
-      
-      // const encryptedBlob = new Blob([iv, encryptedData], { type: file.type });
-
-
-      // // we have to manually create a json object so it can be sent through the web socket as formData cannot be convertd to json using JSON.stringify()
-      // const reader = new FileReader();
-      // reader.readAsDataURL(encryptedBlob);
-      // reader.onloadend = async function() {
-      // const base64data = reader.result.split(',')[1]; // Get the base64 string
-
-
-        
-
-        
-      // };
-
-
-      // this is to send it via HTTP
-      // formData.append('file', encryptedBlob, file.name);
-      // formData.append('chatroom_id', chatroom_id); 
-      // formData.append("message_type", "new_upload");
-      // await socket.send(JSON.stringify(formData));
-      // Send the file with fetch
-      // try {
-      //   const response = await fetch(`${API_URL}/upload_file/`, {
-      //     method: 'POST',
-      //     body: formData,
-      //     headers: {"Authorization" : `Token ${user_token}` },
-      //   });
-
-      //   if (response.ok) {
-      //     console.log('File uploaded successfully:');
-      //   } else {
-      //     console.error('Failed to upload file:', response.statusText);
-      //   }
-      // } catch (error) {
-      //   console.error('Error uploading file:', error);
-      // }
+      reader.readAsArrayBuffer(file);  
     })
 
 
-
-
-
-
       // if socket is null still we will display connection to server failed
-
-
       const messageInput = document.getElementById('messageInput');
       let typingTimeout; // For detecting inactivity
       let isTyping = false; // Track if typing indicator is active
@@ -421,16 +382,13 @@
 
       // Event listener for input with debounce
       messageInput.addEventListener('input', function() {
-          // Send typing payload once when typing starts
           sendTypingPayload();
 
-          // Clear any existing stop-typing timer
           clearTimeout(typingTimeout);
 
-          // Set a new timeout to send "user_stopped_typing" if no input for 2 seconds
           typingTimeout = setTimeout(() => {
               sendStoppedTypingPayload();
-          }, 2000); // 2000 ms = 2 seconds
+          }, 2000); 
       });
 
 
@@ -453,7 +411,6 @@
         }
     };
 
-        // Call the function to update the user status
         updateUserStatus();
 
 
@@ -506,34 +463,10 @@
       
 
 
-
-
-
-      
-      // (async () => {
-      //   const t_public = await window.api.getUserName();
-      //   const t_private = await window.api.getUserPrivate();
-      //   const message = "Hello, World!";
-      //   const signed = await window.api.signMessage(message,t_private);
-      //   console.log(t_public);
-      //   const good = await window.api.verifyMessage(message, signed, t_public)
-      //   console.log(good);
-        //   const encryptedMessage = await window.api.encryptMessage(message, t_public);
-      //   console.log("Encrypted message:", encryptedMessage);
-
-      //   const decryptedMessage = await window.api.decryptMessage(encryptedMessage, t_private);
-      //   console.log("Decrypted message:", decryptedMessage);
-
-      // })();
-
-
-      
-
     async function connect_websocket(){
       try {
         const user_token = await window.api.getUserToken();
 
-        // Ensure chatroomId and WS_URL are defined
         if (!chatroom_id || !window.WS_URL) {
           throw new Error('chatroom_id or WS_URL is not defined');
           return;
@@ -554,7 +487,6 @@
 
           if (data.message_type === "new_message") {
             console.log(my_private);
-            // const decryptedMessage = await window.api.decryptMessage(data.encrypted_message, my_private);
             const ivBuffer = await window.api.convertIVToBuffer(data.iv);
             const decryptedMessage = await window.api.decryptMessageUsingSK(data.encrypted_message, s_key, ivBuffer);
             const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
@@ -568,8 +500,6 @@
               iv: data.iv
               };
                 appendMessage(newMessage)
-                // messagesData.push(newMessage); // wrong here as it needs iv
-                // loadMessages();
 
             }else{
               const newMessage = {
@@ -583,7 +513,6 @@
 
           }
           } else if (data.message_type === "user_typing_message"){
-            // do typing animation  such as friedname is typing... on the top left of the input box
             const typingIndicator = document.getElementById('user_typing');
             typingIndicator.innerText = `${realFriendName} is typing...`
             typingIndicator.style.display = 'block';
@@ -605,7 +534,7 @@
 
           } else if (data.message_type == "new_upload"){
             console.log("file recieved", data);
-            // check if signature is valid
+            // should check if signature is valid
             const formatted_data = {
               "message_type": "new_upload",
               "encrypted_file_path": data["encrypted_file_path"],
@@ -684,31 +613,6 @@
 
 
 
-    // async function send_message(message){
-    //   if (socket && socket.readyState === WebSocket.OPEN) {
-    //       // const encryptedMessage = await window.api.encryptMessage(message, friend_public_key);
-          
-          
-    //       const encryptedMessage = await window.api.encryptMessageUsingSK(message, s_key);
-         
-    //       const privateKey = await window.api.getUserPrivate();
-    //       const messageSignature = await window.api.signMessage(message, privateKey)
-
-    //       const payload = {"encrypted_message" : encryptedMessage.encryptedData, "message_signature" : messageSignature, "iv" : encryptedMessage.iv}
-    //       const jsonPayload = JSON.stringify(payload);
-          
-    //       socket.send(jsonPayload);
-    //       console.log('Message sent:', jsonPayload);
-    //       return true;
-    //       } else {
-    //         return false;
-    //       console.error('WebSocket is not open. Ready state:', socket.readyState);
-    //     }
-
-    //   }
-
-
-
 
 
 
@@ -742,7 +646,7 @@ async function loadMessages() {
   let lastTime = '';
   let messageGroup = null;
 
-  console.log("messagesData:", messagesData); // Changed from "nigga" for professionalism
+  console.log("messagesData:", messagesData);
 
   for (const [index, message] of messagesData.entries()) {
     if (message.isFile !== true){
@@ -776,7 +680,6 @@ async function loadMessages() {
       const messageElement = document.createElement('div');
       messageElement.classList.add('message');
 
-      // Ensure await calls are handled properly
       const ivBuffer = await window.api.convertIVToBuffer(message.iv);
       const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
       messageElement.innerText = decryptedMessage;
@@ -831,12 +734,8 @@ async function loadMessages() {
       const messageElement = document.createElement('div');
       messageElement.classList.add('message');
 
-      // Ensure await calls are handled properly
-      // const ivBuffer = await window.api.convertIVToBuffer(message.iv);
-      // const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
       messageElement.innerText = message.fileName;
 
-      // Create download button
       const downloadButton = document.createElement('button');
       downloadButton.classList.add('download-button');
       downloadButton.innerHTML = '<i class="fas fa-download"></i>'; // Font Awesome download icon
@@ -844,17 +743,6 @@ async function loadMessages() {
 
       downloadButton.addEventListener('click', async () => {
         const fileData = await downloadFile(message.fileData, message.iv);
-        // await downloadFile(message)
-        
-        // const blob = new Blob([fileData], { type: 'application/octet-stream' });
-        // const url = URL.createObjectURL(blob);
-        // const a = document.createElement('a');
-        // a.href = url;
-        // a.download = message.fileName;
-        // document.body.appendChild(a);
-        // a.click();
-        // document.body.removeChild(a);
-        // URL.revokeObjectURL(url);
       });
 
       messageElement.appendChild(downloadButton);
@@ -879,7 +767,7 @@ async function loadMessages() {
         timeElement.innerText = messageTime;
         messageGroup.appendChild(timeElement);
         chatBox.appendChild(messageGroup);
-        messageGroup = null; // Reset message group
+        messageGroup = null;
       }
     }
 
@@ -890,7 +778,6 @@ async function loadMessages() {
     document.getElementById('loading-overlay').style.display = 'none';
 
 
-    // do things for file messages here
     
   }
 
@@ -987,19 +874,7 @@ async function loadMessages() {
       downloadButton.style.marginLeft = "10px";
 
       downloadButton.addEventListener('click', async () => {
-        const fileData = await window.api.downloadFile(message.fileName); // Assuming you have a function to download the file
-        // await downloadFile(message)
-        alert(message.encrypted_file_path);
-        
-        const blob = new Blob([fileData], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = message.fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const fileData = await downloadFile("/media/" + message.encrypted_file_path, message.iv);
       });
 
       messageElement.appendChild(downloadButton);
@@ -1011,12 +886,12 @@ async function loadMessages() {
         messageElement.classList.add('received');
         messageGroup.style.alignItems = 'flex-start';
     }
-    
+
+
     messageGroup.appendChild(messageElement);
     
     // Check if we need to add the timestamp
     const lastMessage = newMessageData[newMessageData.length - 1];
-    // const lastMessageTime = formatTime(lastMessage.timestamp);
     
     // this doesnt work correctly yet
     // issues: Creates already made -- date -- and adds time on every message
@@ -1040,7 +915,6 @@ async function loadMessages() {
     const response = await fetch(`${API_URL}${filePath}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', "Authorization" : `Token ${user_token}`},
-        // body: JSON.stringify({ "filePath" : filePath, "chatroom_id" : chatroomId }), // automatically does "username" : username ... and converts to string
     });
 
     if (!response.ok){
@@ -1048,13 +922,12 @@ async function loadMessages() {
     }else{
 
       
-      const blob = await response.blob(); // Gets binary data from a URL
-const base64Text = await blob.text();
-const decryptedData = await window.api.decryptData(base64Text, s_key, message_iv);
-
-// Skip JSON.stringify to retain the original formatting
-const textBlob = new Blob([decryptedData], { type: 'text/plain' });
-
+    const blob = await response.blob(); // Gets binary data from a URL
+    const base64Text = await blob.text();
+    
+    const decryptedData64 = await window.api.decryptData(base64Text, s_key, message_iv);
+    const decryptedData = atob(decryptedData64);
+    const textBlob = new Blob([decryptedData], { type: 'text/plain' });
 
     // asks for save location:
     const url = window.URL.createObjectURL(textBlob);
@@ -1104,8 +977,6 @@ const textBlob = new Blob([decryptedData], { type: 'text/plain' });
 
           newMessageData.push(newMessage);
           appendMessage(newMessage);
-          // messagesData.push(newMessage);
-          // loadMessages();
 
           
           messageInput.style.height = 'auto'; // Reset height
@@ -1121,11 +992,10 @@ const textBlob = new Blob([decryptedData], { type: 'text/plain' });
 
     }
 
-
-    // Add event listener for Enter key
+    // enter key
     document.getElementById('messageInput').addEventListener('keypress', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault(); // Prevent default behavior of Enter key
+        e.preventDefault(); 
         sendMessage();
       }
     });

@@ -12,45 +12,45 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      background-color: #f0f0f0; /* Light background color */
-      font-family: Arial, sans-serif; /* Clean font */
+      background-color: #f0f0f0; 
+      font-family: Arial, sans-serif; 
     }
     h1 {
-      margin-bottom: 20px; /* Space below the header */
-      color: #333; /* Dark text color */
+      margin-bottom: 20px; 
+      color: #333; 
     }
     form {
-      background-color: white; /* White background for form */
-      padding: 20px; /* Padding inside the form */
-      border-radius: 8px; /* Rounded corners */
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-      display: flex; /* Flexbox for form elements */
-      flex-direction: column; /* Stack elements vertically */
-      width: 300px; /* Fixed width for the form */
+      background-color: white; 
+      padding: 20px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+      display: flex; 
+      flex-direction: column; 
+      width: 300px; 
     }
     label {
-      margin-bottom: 5px; /* Space below the label */
-      color: #555; /* Slightly lighter color for labels */
+      margin-bottom: 5px; 
+      color: #555; 
     }
     input[type="text"] {
-      padding: 10px; /* Padding inside the input */
-      margin-bottom: 5px; /* Space below the input */
-      border: 1px solid #ccc; /* Light border */
-      border-radius: 5px; /* Rounded corners */
-      font-size: 16px; /* Font size */
+      padding: 10px; 
+      margin-bottom: 5px; 
+      border: 1px solid #ccc; 
+      border-radius: 5px; 
+      font-size: 16px; 
     }
     button {
-      background-color: #007BFF; /* Button color */
-      color: white; /* Text color */
-      border: none; /* No border */
-      border-radius: 5px; /* Rounded corners */
-      padding: 10px; /* Padding */
-      cursor: pointer; /* Pointer cursor */
-      font-size: 16px; /* Font size */
-      transition: background-color 0.3s; /* Transition for hover effect */
+      background-color: #007BFF; 
+      color: white; 
+      border: none; 
+      border-radius: 5px; 
+      padding: 10px; 
+      cursor: pointer; 
+      font-size: 16px; 
+      transition: background-color 0.3s; 
     }
     button:hover {
-      background-color: #0056b3; /* Darker blue on hover */
+      background-color: #0056b3; 
     }
   </style>
 </head>
@@ -67,9 +67,9 @@
   <form onsubmit="send_friend_request(event)">
     <label for="friendName">Friend's Name:</label>
     <input type="text" id="friendName" name="friendName" required>
-    <p id="success-message" style="color: green; display: none;"></p> <!-- Hidden by default -->
-    <p id="error-message" style="color: red; display: none;"></p> <!-- Hidden by default -->
-    <button type="submit">Add</button> <!-- Use type="submit" -->
+    <p id="success-message" style="color: green; display: none;"></p> 
+    <p id="error-message" style="color: red; display: none;"></p> 
+    <button type="submit">Add</button> 
   </form>
 
   <script>
@@ -112,7 +112,7 @@
           return;
                           
       } catch (error) {
-          error_message.textContent = error.message; // Show error message
+          error_message.textContent = error.message;
           error_message.style.display = 'block';
       }
     }

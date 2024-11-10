@@ -5,6 +5,11 @@ const fs = require('fs');
 const forge = require('node-forge');
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
+const { spawn } = require('child_process');
+
+
+let torProcess;
+let loadingWindow;
 
 const dbPath = path.join(__dirname, "data.db")
 
@@ -15,6 +20,83 @@ let db = new sqlite3.Database(dbPath, (err) => {
     console.log('Connected to the SQLite database.');
   }
 });
+
+
+
+function createLoadingWindow() {
+  loadingWindow = new BrowserWindow({
+      width: 400,
+      height: 300,
+      frame: false,
+      alwaysOnTop: true,
+      webPreferences: {
+          nodeIntegration: true,
+      },
+  });
+
+  loadingWindow.loadFile(path.join(__dirname, './screens/loading.html'));
+
+
+  loadingWindow.on('closed', function () {
+      loadingWindow = null;
+  });
+}
+
+
+function startTor() {
+  return new Promise((resolve, reject) => {
+
+  const torProcess = spawn('tor');
+
+
+  torProcess.stdout.on('data', (data) => {
+      console.log(`Tor: ${data}`);
+  });
+
+  torProcess.stderr.on('data', (data) => {
+      console.error(`Tor error: ${data}`);
+  });
+
+  torProcess.on('close', (code) => {
+      console.log(`Tor process exited with code ${code}`);
+  });
+});
+
+}
+
+function getTorExecutablePath() {
+  const platform = process.platform;
+  let torExecutable = '';
+
+  if (platform === 'win32') {
+      torExecutable = 'tor-win.exe';
+  } else if (platform === 'darwin') {
+      torExecutable = 'tor-mac';
+  } else if (platform === 'linux') {
+      torExecutable = 'tor-linux';
+  }
+
+  return path.join(__dirname, 'resources', 'tor', torExecutable);
+}
+
+
+// app.on('ready', () => {
+//   createLoadingWindow();
+//   startTor()
+//       .then(() => {
+//           if (loadingWindow) {
+//               loadingWindow.close();
+//           }
+//           createMainWindow();
+//       })
+//       .catch((error) => {
+//           console.error('Failed to start Tor:', error);
+//           if (loadingWindow) {
+//               loadingWindow.close();
+//           }
+//           app.quit();
+//       });
+// });
 
 
 
@@ -67,13 +149,7 @@ ipcMain.on('save-main-user', (event, user_data) => {
 });
 
 
-// db.close((err) => {
-//   if (err) {
-//     console.error(err.message);
-//   } else {
-//     console.log('Close the database connection.');
-//   }
-// });
+
 
 
 
@@ -82,29 +158,6 @@ function checkForToken() {
 }
 
 
-
-// Function to get the username from data.json
-// function getUserName() {
-//   if (fs.existsSync(dataFilePath)) {
-//     try {
-//       const data = fs.readFileSync(dataFilePath, 'utf8');
-//       const parsedData = JSON.parse(data);
-//       if (parsedData.main_user && parsedData.main_user.user_data && parsedData.main_user.user_data.username) {
-//         console.log('Username found:', parsedData.main_user.user_data.username);
-//         return parsedData.main_user.user_data.username;
-//       } else {
-//         console.log('Username not found in data.json');
-//         return null;
-//       }
-//     } catch (error) {
-//       console.error('Error reading or parsing data.json:', error);
-//       return null;
-//     }
-//   } else {
-//     console.log('data.json does not exist');
-//     return null;
-//   }
-// }
 
 
 
@@ -144,28 +197,6 @@ async function getUserToken() {
 
 }
 
-// Function to get the token from data.json
-// function getUserToken() {
-//   if (fs.existsSync(dataFilePath)) {
-//     try {
-//       const data = fs.readFileSync(dataFilePath, 'utf8');
-//       const parsedData = JSON.parse(data);
-//       if (parsedData.main_user && parsedData.main_user.token) {
-//         console.log('Token found:', parsedData.main_user.token);
-//         return parsedData.main_user.token;
-//       } else {
-//         console.log('Token not found in data.json');
-//         return null;
-//       }
-//     } catch (error) {
-//       console.error('Error reading or parsing data.json:', error);
-//       return null;
-//     }
-//   } else {
-//     console.log('data.json does not exist');
-//     return null;
-//   }
-// }
 
 
 
@@ -230,27 +261,21 @@ async function encryptMessageUsingSK(plainText, key) {
   let encrypted = cipher.update(plainText, 'utf8', 'hex');
   encrypted += cipher.final('hex');
 
-  // Return both the encrypted text and the IV, as the IV is needed for decryption
   return {
     iv: iv.toString('hex'),
     encryptedData: encrypted
   };
 }
 
-const ALGORITHM = 'aes-256-cbc';
 
 function encryptFile(fileData, key) {
-  // Generate a random initialization vector (IV)
   const iv = crypto.randomBytes(16);
 
-  // Create a cipher instance with AES-256-CBC algorithm
   const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
 
-  // Encrypt the file data
   let encryptedData = cipher.update(Buffer.from(fileData));
   encryptedData = Buffer.concat([encryptedData, cipher.final()]);
 
-  // Return the encrypted data and IV in Base64 format
   return {
     encryptedData: encryptedData.toString('base64'),
     iv: iv.toString('base64'),
@@ -263,26 +288,21 @@ async function decryptFile(encryptedData, key, iv) {
     throw new Error('Key must be 32 bytes (256 bits) for AES-256 decryption.');
   }
   
-  // Convert iv from hex back to a buffer
   const ivBuffer = Buffer.from(iv, 'hex');
 
-  // Create a decipher with the same key and IV used for encryption
   const decipher = crypto.createDecipheriv('aes-256-cbc', key, ivBuffer);
 
-  // Decrypt the data
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
 
   return decrypted;
 }
 
-// IPC handler for encryption
 ipcMain.handle('encrypt-file', async (event, fileData, key) => {
   return encryptFile(fileData, key);
 });
 
 
-// IPC handler for decryption
 ipcMain.handle('decrypt-file', async (event, encryptedData, key, iv) => {
 
   return decryptFile(encryptedData, key, iv);
@@ -291,7 +311,6 @@ ipcMain.handle('decrypt-file', async (event, encryptedData, key, iv) => {
 
 
 ipcMain.handle('convert-arraybuffer-to-buffer', (event, arrayBuffer) => {
-  // Convert the ArrayBuffer to a Buffer and return it
   return Buffer.from(arrayBuffer);
 });
 
@@ -308,17 +327,14 @@ function decryptMessageUsingSK(encryptedData, key, iv) {
 
   // encrypted data must be in hex format!!
 
-  // Validate that the key and IV have the correct lengths
   if (key.length !== 32) {
     throw new Error('Key must be 32 bytes (256 bits) for AES-256 decryption.');
   }
   if (iv.length !== 16) {
     throw new Error('IV must be 16 bytes for AES-256-CBC decryption.');
   }
-  // Create a decipher instance
   const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
   
-  // Decrypt the data
   let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
 
@@ -328,7 +344,7 @@ function decryptMessageUsingSK(encryptedData, key, iv) {
 
 
 (async () => {
-  const key = await generateSK(); // Generate or obtain a 32-byte symmetric key
+  const key = await generateSK(); 
   const keyHex = key.toString('hex');
   console.log('Generated Key:', keyHex);
   
@@ -337,7 +353,7 @@ function decryptMessageUsingSK(encryptedData, key, iv) {
   console.log('IV:', result.iv);
 
 
-  const ivBuffer = Buffer.from(result.iv, 'hex'); // converts hex string to binary (buffer)
+  const ivBuffer = Buffer.from(result.iv, 'hex');
   console.log("ivBuffer", ivBuffer)
   const decryptedM = await decryptMessageUsingSK(result.encryptedData, key, ivBuffer)
   console.log("Decrypted text:", decryptedM)
@@ -351,7 +367,6 @@ function encryptMessage(message, public_key){
 
 function decryptMessage(encrypted_message, private_key){
   const encryptedMessageBuffer = Buffer.from(encrypted_message, "base64"); // takes a base64 encrypted text
-  // Decrypt the message
   const decryptedMessage = crypto.privateDecrypt(private_key, encryptedMessageBuffer);
   return decryptedMessage.toString('utf8'); // takes it in decmial and converts it into human readable string format
 
@@ -369,9 +384,7 @@ function verifyMessage(message, signature, public_key){
   const verifier = crypto.createVerify('sha256');
   verifier.update(message);
   verifier.end();
-  // Convert the signature from base64 to a buffer
   const signatureBuffer = Buffer.from(signature, 'base64');
-  // Verify the signature
   const isVerified = verifier.verify(public_key, signatureBuffer);
   return isVerified;
 
@@ -418,13 +431,11 @@ ipcMain.handle("generate-sk", () => {
 
 
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
 
 
-// Handle IPC messages to get the username
 ipcMain.handle('get-username', () => {
   return getUserName();
 });
@@ -447,7 +458,6 @@ ipcMain.handle('get-user-id', () => {
 });
 
 
-// Handle IPC message to open the "Add Friend" window
 ipcMain.on('open-add-friend-window', () => {
   const addFriendWindow = new BrowserWindow({
     width: 400,
@@ -510,7 +520,6 @@ ipcMain.on('open-chatroom-window', (event, { friend, realFriendName, chatroomId,
 
 
 const createRootWindow = () => {
-  // Create the browser window.
   const rootWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -520,13 +529,11 @@ const createRootWindow = () => {
     },
   });
 
-  // and load the index.html of the app.
   rootWindow.loadFile(path.join(__dirname, './screens/root.html'));
 
 }
 
 const createWindow = () => {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
@@ -536,7 +543,6 @@ const createWindow = () => {
     },
   });
 
-  // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
 
@@ -625,8 +631,6 @@ checkDatabase().then(isValid => {
     app.whenReady().then(() => {
       createRootWindow();
     
-      // On OS X it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
           createRootWindow();
@@ -637,8 +641,6 @@ checkDatabase().then(isValid => {
     app.whenReady().then(() => {
       createWindow();
     
-      // On OS X it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
       app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
           createWindow();
@@ -650,8 +652,6 @@ checkDatabase().then(isValid => {
   app.whenReady().then(() => {
     createWindow();
   
-    // On OS X it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
@@ -667,18 +667,19 @@ checkDatabase().then(isValid => {
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    db.close();
+    // torProcess.kill();
     app.quit();
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
 
-const { spawn } = require('child_process');
 
+
+// used for enc/dec files
 function runPythonScript(data, key, iv,  operation) {
   return new Promise((resolve, reject) => {
-      const pythonProcess = spawn('python3', ['src/main.py']);
+      const pythonProcess = spawn('python3', ['src/file_enc_dec.py']);
 
       // Prepare data to send to Python
       const input = JSON.stringify({ data, key, iv, operation });
@@ -717,7 +718,6 @@ async function encryptData(data, key) {
   };
 }
 
-// Decrypt data
 async function decryptData(encryptedData, key, iv) {
   const decryptedData = await runPythonScript(encryptedData, key, iv, 'decrypt');
   console.log("Decrypted Data:", decryptedData);

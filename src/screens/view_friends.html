@@ -12,58 +12,55 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      background-color: #f0f0f0; /* Light background color */
-      font-family: Arial, sans-serif; /* Clean font */
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif; 
     }
     h1 {
-      margin-bottom: 20px; /* Space below the header */
-      color: #333; /* Dark text color */
+      margin-bottom: 20px; 
+      color: #333; 
     }
     .container {
-      background-color: white; /* White background for container */
-      padding: 20px; /* Padding inside the container */
-      border-radius: 8px; /* Rounded corners */
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-      width: 300px; /* Fixed width for the container */
-      max-height: 400px; /* Maximum height */
-      overflow-y: auto; /* Enable vertical scrolling */
+      background-color: white; 
+      padding: 20px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+      width: 300px; 
+      max-height: 400px; 
+      overflow-y: auto; 
     }
     .friend {
-      display: flex; /* Use flexbox for friend entry */
-      justify-content: space-between; /* Space between name and buttons */
-      padding: 10px; /* Padding for each friend entry */
-      border-bottom: 1px solid #ccc; /* Light border between entries */
-      color: #555; /* Color for friend names */
+      display: flex; 
+      justify-content: space-between; 
+      padding: 10px; 
+      border-bottom: 1px solid #ccc; 
+      color: #555; 
     }
     .friend:last-child {
-      border-bottom: none; /* Remove border for last entry */
+      border-bottom: none; 
     }
     .button {
-      border: none; /* No border */
-      border-radius: 5px; /* Rounded corners */
-      padding: 5px 10px; /* Padding */
-      cursor: pointer; /* Pointer cursor */
-      font-size: 16px; /* Font size */
+      border: none; 
+      border-radius: 5px; 
+      padding: 5px 10px; 
+      cursor: pointer; 
+      font-size: 16px; 
     }
     .accept {
-      background-color: #28a745; /* Green background for accept */
-      color: white; /* White text color */
+      background-color: #28a745; 
+      color: white; 
     }
     .decline {
-      background-color: #dc3545; /* Red background for decline */
-      color: white; /* White text color */
+      background-color: #dc3545; 
+      color: white; 
     }
   </style>
 </head>
 <body>
   <h1>Friends</h1>
   <div class="container" id="friendsContainer">
-    <!-- Placeholder for pending friends -->
-    <!-- Example entries -->
     <div class="friend">
 
     </div>
-    <!-- Add more entries as needed -->
   </div>
   <script type="module">
     import { API_URL , WS_URL} from '../js/config.js';
@@ -185,13 +182,8 @@
         const sk = await get_user_SK(real_friend_name);
         
         
-        // const ivBuffer = await window.api.convertIVToBuffer(result.iv);
         
-        
-        // const result = await window.api.encryptMessageUsingSK('Hello, World!', sk);
-        // console.log('Encrypted Text:', result.encryptedData);
 
-        // const dc = await window.api.decryptMessageUsingSK(result.encryptedData, sk, ivBuffer);
 
 
         if (chatroom_id !== null && friend_public_key !== null && sk !== null){
@@ -208,11 +200,9 @@
             socket.addEventListener('open', (event) => {
             console.log('Connected to WebSocket server');
             });
-        // }
 
 
     }
-    // Example: Fetching and displaying pending friend requests
 
    
     async function loadCurrentFriends() {
@@ -256,8 +246,8 @@
           const chatButton = document.createElement('button');
           chatButton.textContent = 'Chat';
           chatButton.className = 'chat';
-          chatButton.dataset.friendId = friend.id; // Assuming friend has an id property
-          chatButton.onclick = () => handle_chat(friend, real_friend_name); // Assign function to onclick
+          chatButton.dataset.friendId = friend.id; 
+          chatButton.onclick = () => handle_chat(friend, real_friend_name); 
 
 
         //   const rejectButton = document.createElement('button');
@@ -279,46 +269,6 @@
       }
     }
 
-    // async function acceptFriendRequest(friendName) {
-    //   try {
-    //     const response = await fetch(`${window.API_URL}/accept_friend_request/`, {
-    //       method: 'POST',
-    //       headers: { 
-    //         'Content-Type': 'application/json', 
-    //         "Authorization": `Token 1e23e8a43b7d8067e9dcf212854854b6ed7ca97c` 
-    //     },
-    //       body: JSON.stringify({ "user_to_accept" : friendName }) // Send friend's name in the request
-    //     });
-
-    //     if (response.ok) {
-    //       loadCurrentFriends(); // Reload pending friends
-    //     } else {
-    //       console.error('Error accepting friend request');
-    //     }
-    //   } catch (error) {
-    //     console.error('Error accepting friend request:', error);
-    //   }
-    // }
-
-    // async function declineFriendRequest(friendName) {
-    //   try {
-    //     const response = await fetch(`${window.API_URL}/decline_friend_request/`, {
-    //       method: 'POST',
-    //       headers: { 'Content-Type': 'application/json' },
-    //       body: JSON.stringify({ friendName }) // Send friend's name in the request
-    //     });
-
-    //     if (response.ok) {
-    //       loadCurrentFriends(); // Reload pending friends
-    //     } else {
-    //       console.error('Error declining friend request');
-    //     }
-    //   } catch (error) {
-    //     console.error('Error declining friend request:', error);
-    //   }
-    // }
-
-    // Load pending friends on page load
     window.onload = loadCurrentFriends;
   </script>
 </body>

@@ -11,7 +11,6 @@ contextBridge.exposeInMainWorld('api', {
     getUserToken: () => ipcRenderer.invoke('get-user-token'),
     openViewPendingFriendsWindow: () => ipcRenderer.send('open-view-pending-friends-window'),
     openViewFriendsWindow: () => ipcRenderer.send("open-view-friends-window"),
-    // openChatroomWindow: () => ipcRenderer.send("open-chatroom-window"),
     openChatroomWindow: (friend, realFriendName, chatroomId, friendPublicKey, sk) => ipcRenderer.send('open-chatroom-window', { friend, realFriendName, chatroomId, friendPublicKey, sk}),
     onChatroomData: (callback) => ipcRenderer.on('chatroom-data', callback),
     generateRSAKeys: () => ipcRenderer.invoke("generate-rsa-keys"),

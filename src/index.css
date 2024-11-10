@@ -7,22 +7,22 @@ body {
   grid-template-columns: 1fr 1fr;
   height: 100vh;
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
-  color: #333; /* Darker text for better contrast */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+  color: #333; 
 }
 
 .left-side {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #f0f0f0, #e0e0e0); /* Subtle gradient */
+  background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
 }
 
 .left-side img {
   max-width: 50%;
-  max-height: 90%; /* Limit height for better centering */
+  max-height: 90%; 
   object-fit: cover;
-  border-radius: 10px; /* Soft corners for images */
+  border-radius: 10px; 
 }
 
 .right-side {
@@ -34,23 +34,23 @@ body {
 
 .form-container {
   width: 100%;
-  max-width: 400px; /* Set a max-width for larger screens */
+  max-width: 400px;
   padding: 30px;
-  border: none; /* Remove border for a cleaner look */
+  border: none; 
   border-radius: 10px;
-  background: #ffffff; /* Clean background for the form */
-  transition: transform 0.3s; /* Animation effect */
+  background: #ffffff;
+  transition: transform 0.3s; 
 }
 
 .form-container:hover {
-  transform: translateY(-5px); /* Lift effect on hover */
+  transform: translateY(-5px); 
 }
 
 .form-container h2 {
   text-align: center;
   margin-bottom: 20px;
-  font-size: 24px; /* Larger font for headers */
-  color: #444; /* Darker header color */
+  font-size: 24px; 
+  color: #444; 
 }
 
 .form-container input {
@@ -59,13 +59,13 @@ body {
   margin-bottom: 15px;
   border: 1px solid #ccc;
   border-radius: 5px;
-  font-size: 16px; /* Increase font size for inputs */
-  transition: border-color 0.3s; /* Smooth border color transition */
+  font-size: 16px; 
+  transition: border-color 0.3s;
 }
 
 .form-container input:focus {
-  border-color: #28a745; /* Highlight border on focus */
-  outline: none; /* Remove default outline */
+  border-color: #28a745;
+  outline: none; 
 }
 
 .form-container button {
@@ -75,18 +75,18 @@ body {
   border-radius: 5px;
   background-color: #28a745;
   color: white;
-  font-size: 18px; /* Slightly larger button text */
+  font-size: 18px; 
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.3s; /* Smooth transition for button */
+  transition: background-color 0.3s, transform 0.3s;
 }
 
 .form-container button:hover {
   background-color: #218838;
-  transform: scale(1.05); /* Slight scale effect on hover */
+  transform: scale(1.05); 
 }
 
 .error {
-  color: #ff4d4d; /* Bright red for errors */
+  color: #ff4d4d;
   margin-bottom: 15px;
-  display: none; /* Hidden by default */
+  display: none;
 }

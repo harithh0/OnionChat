@@ -12,58 +12,55 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
-      background-color: #f0f0f0; /* Light background color */
-      font-family: Arial, sans-serif; /* Clean font */
+      background-color: #f0f0f0;
+      font-family: Arial, sans-serif; 
     }
     h1 {
-      margin-bottom: 20px; /* Space below the header */
-      color: #333; /* Dark text color */
+      margin-bottom: 20px;
+      color: #333;
     }
     .container {
-      background-color: white; /* White background for container */
-      padding: 20px; /* Padding inside the container */
-      border-radius: 8px; /* Rounded corners */
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-      width: 300px; /* Fixed width for the container */
-      max-height: 400px; /* Maximum height */
-      overflow-y: auto; /* Enable vertical scrolling */
+      background-color: white; 
+      padding: 20px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      max-height: 400px; 
+      overflow-y: auto; 
     }
     .friend {
-      display: flex; /* Use flexbox for friend entry */
-      justify-content: space-between; /* Space between name and buttons */
-      padding: 10px; /* Padding for each friend entry */
-      border-bottom: 1px solid #ccc; /* Light border between entries */
-      color: #555; /* Color for friend names */
+      display: flex; 
+      justify-content: space-between;
+      padding: 10px;
+      border-bottom: 1px solid #ccc; 
+      color: #555; 
     }
     .friend:last-child {
-      border-bottom: none; /* Remove border for last entry */
+      border-bottom: none; 
     }
     .button {
-      border: none; /* No border */
-      border-radius: 5px; /* Rounded corners */
-      padding: 5px 10px; /* Padding */
-      cursor: pointer; /* Pointer cursor */
-      font-size: 16px; /* Font size */
+      border: none; 
+      border-radius: 5px; 
+      padding: 5px 10px; 
+      cursor: pointer; 
+      font-size: 16px; 
     }
     .accept {
-      background-color: #28a745; /* Green background for accept */
-      color: white; /* White text color */
+      background-color: #28a745;
+      color: white; 
     }
     .decline {
-      background-color: #dc3545; /* Red background for decline */
-      color: white; /* White text color */
+      background-color: #dc3545;
+      color: white; 
     }
   </style>
 </head>
 <body>
   <h1>Pending Friend Requests</h1>
   <div class="container" id="pendingFriendsContainer">
-    <!-- Placeholder for pending friends -->
-    <!-- Example entries -->
     <div class="friend">
 
     </div>
-    <!-- Add more entries as needed -->
   </div>
   <script type="module">
     import { API_URL } from '../js/config.js';
@@ -85,7 +82,6 @@
     }
 
 
-    // Example: Fetching and displaying pending friend requests
     async function loadPendingFriends() {
         const user_token = await window.api.getUserToken();
         const current_username = await window.api.getUserName();
@@ -107,7 +103,7 @@
         }
 
         const container = document.getElementById('pendingFriendsContainer');
-        container.innerHTML = ''; // Clear the container before adding friends
+        container.innerHTML = ''; 
 
         for (const friend of friends) {
           const real_friend_name = await get_actual_friend(friend, current_username);
@@ -116,21 +112,21 @@
           friendDiv.className = 'friend';
           
           const friendName = document.createElement('span');
-          friendName.textContent = real_friend_name; // Display the actual friend's name
+          friendName.textContent = real_friend_name; 
           
           const buttonDiv = document.createElement('div');
 
           const acceptButton = document.createElement('button');
           acceptButton.textContent = 'Accept';
           acceptButton.className = 'accept';
-          acceptButton.dataset.friendId = friend.id; // Assuming friend has an id property
-          acceptButton.onclick = () => acceptFriendRequest(friend, real_friend_name); // Assign function to onclick
+          acceptButton.dataset.friendId = friend.id;
+          acceptButton.onclick = () => acceptFriendRequest(friend, real_friend_name); 
 
 
           const rejectButton = document.createElement('button');
           rejectButton.textContent = 'Reject';
           rejectButton.className = 'reject';
-          rejectButton.dataset.friendId = friend.id; // Assuming friend has an id property
+          rejectButton.dataset.friendId = friend.id;
 
           buttonDiv.appendChild(acceptButton);
           buttonDiv.appendChild(rejectButton);
@@ -157,11 +153,11 @@
             'Content-Type': 'application/json', 
             "Authorization": `Token ${user_token}` 
         },
-          body: JSON.stringify({ "user_to_accept" : friendName }) // Send friend's name in the request
+          body: JSON.stringify({ "user_to_accept" : friendName }) 
         });
 
         if (response.ok) {
-          loadPendingFriends(); // Reload pending friends
+          loadPendingFriends(); 
         } else {
           console.error('Error accepting friend request');
           return;
@@ -214,7 +210,7 @@
         });
 
         if (response.ok) {
-          loadPendingFriends(); // Reload pending friends
+          loadPendingFriends();
         } else {
           console.error('Error accepting friend request');
             return;
@@ -235,11 +231,11 @@
         const response = await fetch(`${window.API_URL}/decline_friend_request/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ friendName }) // Send friend's name in the request
+          body: JSON.stringify({ friendName })
         });
 
         if (response.ok) {
-          loadPendingFriends(); // Reload pending friends
+          loadPendingFriends(); 
         } else {
           console.error('Error declining friend request');
         }
@@ -248,7 +244,6 @@
       }
     }
 
-    // Load pending friends on page load
     window.onload = loadPendingFriends;
   </script>
 </body>
