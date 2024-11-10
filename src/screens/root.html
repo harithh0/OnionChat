@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Electron App</title>
+  <title>OnionChat</title>
   <style>
     body {
       display: flex;
@@ -55,20 +55,20 @@
     window.api.getUserName().then(username => {
       document.getElementById('username').textContent = username ? `Hello, ${username}` : 'Username not found';
     }).catch(error => {
-      console.error('Error getting username:', error);
+      //console.error('Error getting username:', error);
       document.getElementById('username').textContent = 'Error loading username';
     });
     
     document.getElementById('addFriendButton').addEventListener('click', () => {
-      console.log('Add Friend button clicked');
+      //console.log('Add Friend button clicked');
     });
 
     document.getElementById('viewPendingRequestsButton').addEventListener('click', () => {
-      console.log('View Pending Friend Requests button clicked');
+      //console.log('View Pending Friend Requests button clicked');
     });
 
     document.getElementById('viewFriendsButton').addEventListener('click', () => {
-      console.log('View Friends button clicked');
+      //console.log('View Friends button clicked');
     });
 
       document.getElementById('addFriendButton').addEventListener('click', () => {

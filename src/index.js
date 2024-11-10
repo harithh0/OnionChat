@@ -11,15 +11,28 @@ const { spawn } = require('child_process');
 let torProcess;
 let loadingWindow;
 
-const dbPath = path.join(__dirname, "data.db")
+// Get the path to the user's application data directory
+// will be stored in /.config/appname for linux
+const userDataPath = app.getPath('userData');
 
+//console.log(userDataPath)
+// Ensure the directory exists
+if (!fs.existsSync(userDataPath)) {
+  fs.mkdirSync(userDataPath, { recursive: true });
+}
+
+// Construct the path to the database file
+const dbPath = path.join(userDataPath, 'data.db');
+
+// Initialize the SQLite database
 let db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
-    console.error(err.message);
+    //console.error('Failed to open database:', err.message);
   } else {
-    console.log('Connected to the SQLite database.');
+    //console.log('Connected to the SQLite database.');
   }
 });
+
 
 
 
@@ -50,15 +63,15 @@ function startTor() {
 
 
   torProcess.stdout.on('data', (data) => {
-      console.log(`Tor: ${data}`);
+      //console.log(`Tor: ${data}`);
   });
 
   torProcess.stderr.on('data', (data) => {
-      console.error(`Tor error: ${data}`);
+      //console.error(`Tor error: ${data}`);
   });
 
   torProcess.on('close', (code) => {
-      console.log(`Tor process exited with code ${code}`);
+      //console.log(`Tor process exited with code ${code}`);
   });
 });
 
@@ -90,7 +103,7 @@ function getTorExecutablePath() {
 //           createMainWindow();
 //       })
 //       .catch((error) => {
-//           console.error('Failed to start Tor:', error);
+//           //console.error('Failed to start Tor:', error);
 //           if (loadingWindow) {
 //               loadingWindow.close();
 //           }
@@ -118,9 +131,9 @@ function insertMainUser(user_id, username, token, public_key, private_key) {
     [user_id, username, token, public_key, private_key], 
     function(err) {
       if (err) {
-        return console.error(err.message);
+        return //console.error(err.message);
       }
-      console.log(`A row has been inserted with rowid ${this.lastID}`);
+      //console.log(`A row has been inserted with rowid ${this.lastID}`);
     }
   );
 }
@@ -250,7 +263,7 @@ ipcMain.handle('decrypt-message-sk', (event, encryptedData, key, iv) => {
 });
 
 async function encryptMessageUsingSK(plainText, key) {
-  console.log("key", key)
+  //console.log("key", key)
   if (key.length !== 32) {
     throw new Error('Key must be 32 bytes (256 bits) for AES-256 encryption.');
   }
@@ -283,7 +296,7 @@ function encryptFile(fileData, key) {
 }
 
 async function decryptFile(encryptedData, key, iv) {
-  console.log("key", key);
+  //console.log("key", key);
   if (key.length !== 32) {
     throw new Error('Key must be 32 bytes (256 bits) for AES-256 decryption.');
   }
@@ -346,17 +359,17 @@ function decryptMessageUsingSK(encryptedData, key, iv) {
 (async () => {
   const key = await generateSK(); 
   const keyHex = key.toString('hex');
-  console.log('Generated Key:', keyHex);
+  //console.log('Generated Key:', keyHex);
   
   const result = await encryptMessageUsingSK('Hello, World!', key);
-  console.log('Encrypted Text:', result.encryptedData);
-  console.log('IV:', result.iv);
+  //console.log('Encrypted Text:', result.encryptedData);
+  //console.log('IV:', result.iv);
 
 
   const ivBuffer = Buffer.from(result.iv, 'hex');
-  console.log("ivBuffer", ivBuffer)
+  //console.log("ivBuffer", ivBuffer)
   const decryptedM = await decryptMessageUsingSK(result.encryptedData, key, ivBuffer)
-  console.log("Decrypted text:", decryptedM)
+  //console.log("Decrypted text:", decryptedM)
 })();
 
 
@@ -675,11 +688,13 @@ app.on('window-all-closed', () => {
 
 
 
+// actual app build /resources folder will contain the script
+const scriptPath = path.join(process.resourcesPath, 'file_enc_dec.py');
 
 // used for enc/dec files
 function runPythonScript(data, key, iv,  operation) {
   return new Promise((resolve, reject) => {
-      const pythonProcess = spawn('python3', ['src/file_enc_dec.py']);
+      const pythonProcess = spawn('python3', [scriptPath]);
 
       // Prepare data to send to Python
       const input = JSON.stringify({ data, key, iv, operation });
@@ -695,7 +710,7 @@ function runPythonScript(data, key, iv,  operation) {
       });
 
       pythonProcess.stderr.on('data', (data) => {
-          console.error(`Error: ${data}`);
+          //console.error(`Error: ${data}`);
       });
 
       pythonProcess.on('close', () => {
@@ -711,7 +726,7 @@ function runPythonScript(data, key, iv,  operation) {
 
 async function encryptData(data, key) {
   const encryptedData = await runPythonScript(data, key, "null", 'encrypt');
-  console.log("Encrypted Data:", encryptedData);
+  //console.log("Encrypted Data:", encryptedData);
   return {
     ciphertext : encryptedData.ciphertext,
     iv : encryptedData.iv
@@ -720,7 +735,7 @@ async function encryptData(data, key) {
 
 async function decryptData(encryptedData, key, iv) {
   const decryptedData = await runPythonScript(encryptedData, key, iv, 'decrypt');
-  console.log("Decrypted Data:", decryptedData);
+  //console.log("Decrypted Data:", decryptedData);
   return decryptedData.decrypted_data;
 }
 

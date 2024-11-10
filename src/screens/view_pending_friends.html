@@ -138,7 +138,7 @@
         }
 
       } catch (error) {
-        console.error('Error fetching pending friends:', error);
+        //console.error('Error fetching pending friends:', error);
       }
     }
 
@@ -159,12 +159,12 @@
         if (response.ok) {
           loadPendingFriends(); 
         } else {
-          console.error('Error accepting friend request');
+          //console.error('Error accepting friend request');
           return;
         
         }
       } catch (error) {
-        console.error('Error accepting friend request:', error);
+        //console.error('Error accepting friend request:', error);
       }
 
 
@@ -184,11 +184,11 @@
             friend_public_key = data.public_key;
 
         } else {
-          console.error('Error accepting friend request');
+          //console.error('Error accepting friend request');
           return;
         }
       } catch (error) {
-        console.error('Error accepting friend request:', error);
+        //console.error('Error accepting friend request:', error);
       }
 
 
@@ -212,11 +212,11 @@
         if (response.ok) {
           loadPendingFriends();
         } else {
-          console.error('Error accepting friend request');
+          //console.error('Error accepting friend request');
             return;
         }
       } catch (error) {
-        console.error('Error accepting friend request:', error);
+        //console.error('Error accepting friend request:', error);
       }
     }
 
@@ -237,10 +237,10 @@
         if (response.ok) {
           loadPendingFriends(); 
         } else {
-          console.error('Error declining friend request');
+          //console.error('Error declining friend request');
         }
       } catch (error) {
-        console.error('Error declining friend request:', error);
+        //console.error('Error declining friend request:', error);
       }
     }
 

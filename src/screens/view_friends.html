@@ -106,7 +106,7 @@
         return data.chatroom_id;
 
       } catch (error) {
-        console.error('Error fetching pending friends:', error);
+        //console.error('Error fetching pending friends:', error);
       }
     }
 
@@ -134,7 +134,7 @@
         return data.public_key;
 
       } catch (error) {
-        console.error('Error fetching public_key:', error);
+        //console.error('Error fetching public_key:', error);
       }
     }
 
@@ -167,7 +167,7 @@
         return null;
 
       } catch (error) {
-        console.error('Error fetching user SK:', error);
+        //console.error('Error fetching user SK:', error);
       }
     }
 
@@ -198,7 +198,7 @@
             const socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
             
             socket.addEventListener('open', (event) => {
-            console.log('Connected to WebSocket server');
+            //console.log('Connected to WebSocket server');
             });
 
 
@@ -265,7 +265,7 @@
         }
 
       } catch (error) {
-        console.error('Error fetching pending friends:', error);
+        //console.error('Error fetching pending friends:', error);
       }
     }
 
