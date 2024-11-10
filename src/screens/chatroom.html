@@ -305,37 +305,61 @@
       // Prepare form data
       // const formData = new FormData();
 
-      
-      const fileText = await file.text();
-      const { iv, encryptedData } = await window.api.encryptMessageUsingSK(fileText, s_key);
-      const encryptedBlob = new Blob([iv, encryptedData], { type: file.type });
-
-
-      // we have to manually create a json object so it can be sent through the web socket as formData cannot be convertd to json using JSON.stringify()
       const reader = new FileReader();
-      reader.readAsDataURL(encryptedBlob);
-      reader.onloadend = async function() {
-      const base64data = reader.result.split(',')[1]; // Get the base64 string
 
-        // Construct the JSON object
-        const jsonObject = {
-          file: base64data,
-          fileName: file.name,
-          chatroom_id: chatroom_id,
-          message_type: "new_upload",
-          iv: iv,
-          // signature: 
-        };
+      // Define the onload event handler
+      reader.onload = async function(e) {
+          const binaryData = new Uint8Array(e.target.result); // Convert ArrayBuffer to Uint8Array
 
-        // Send the JSON object through the WebSocket
+          try {
+              const {ciphertext, iv} = await window.api.encryptData(String(binaryData), s_key);
+              console.log(`Encrypted Data: ${JSON.stringify(ciphertext)}`);
+          
+              const jsonObject = {
+              file: JSON.stringify(ciphertext),
+              fileName: file.name,
+              chatroom_id: chatroom_id,
+              message_type: "new_upload",
+              iv: JSON.stringify(iv),
+              // signature: 
+            };
 
-        // can add verification here to see if it was ACK'd
-        await socket.send(JSON.stringify(jsonObject));
+              //   // can add verification here to see if it was ACK'd
+              await socket.send(JSON.stringify(jsonObject));
 
-        
+          
+            } catch (error) {
+              console.error('Encryption failed:', error);
+          }
 
-        
+            // Construct the JSON object
+
+
+          //   // Send the JSON object through the WebSocket
+
+
       };
+
+      // Read the file as an ArrayBuffer
+      reader.readAsArrayBuffer(file);
+
+
+      // Read the file as an ArrayBuffer (binary data)
+      
+      // const encryptedBlob = new Blob([iv, encryptedData], { type: file.type });
+
+
+      // // we have to manually create a json object so it can be sent through the web socket as formData cannot be convertd to json using JSON.stringify()
+      // const reader = new FileReader();
+      // reader.readAsDataURL(encryptedBlob);
+      // reader.onloadend = async function() {
+      // const base64data = reader.result.split(',')[1]; // Get the base64 string
+
+
+        
+
+        
+      // };
 
 
       // this is to send it via HTTP
@@ -1023,17 +1047,17 @@ async function loadMessages() {
       return null;
     }else{
 
-    const blob = await response.blob(); // gets binary data in this case its a url to a file
-    const ivBuffer = await window.api.convertIVToBuffer(message_iv);
-    const base64Text = await blob.text();
-    const base64Data = base64Text.includes(",") ? base64Text.split(",")[1] : base64Text;
-    const binaryString = atob(base64Data);
+      
+      const blob = await response.blob(); // Gets binary data from a URL
+const base64Text = await blob.text();
+const decryptedData = await window.api.decryptData(base64Text, s_key, message_iv);
 
-    const decryptedData = await window.api.decryptMessageUsingSK(String(binaryString), s_key, ivBuffer);
-    const decryptedBlob = new Blob([decryptedData], { type: 'application/octet-stream' });
+// Skip JSON.stringify to retain the original formatting
+const textBlob = new Blob([decryptedData], { type: 'text/plain' });
+
 
     // asks for save location:
-    const url = window.URL.createObjectURL(decryptedBlob);
+    const url = window.URL.createObjectURL(textBlob);
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;

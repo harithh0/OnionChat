@@ -676,12 +676,12 @@ app.on('window-all-closed', () => {
 
 const { spawn } = require('child_process');
 
-function runPythonScript(data, key, operation) {
+function runPythonScript(data, key, iv,  operation) {
   return new Promise((resolve, reject) => {
       const pythonProcess = spawn('python3', ['src/main.py']);
 
       // Prepare data to send to Python
-      const input = JSON.stringify({ data, key, operation });
+      const input = JSON.stringify({ data, key, iv, operation });
 
       // Send data to Python script
       pythonProcess.stdin.write(input);
@@ -709,18 +709,26 @@ function runPythonScript(data, key, operation) {
 }
 
 async function encryptData(data, key) {
-  const encryptedData = await runPythonScript(data, key, 'encrypt');
+  const encryptedData = await runPythonScript(data, key, "null", 'encrypt');
   console.log("Encrypted Data:", encryptedData);
-  return encryptedData;
+  return {
+    ciphertext : encryptedData.ciphertext,
+    iv : encryptedData.iv
+  };
 }
 
 // Decrypt data
-async function decryptData(encryptedData, key) {
-  const decryptedData = await runPythonScript(encryptedData, key, 'decrypt');
+async function decryptData(encryptedData, key, iv) {
+  const decryptedData = await runPythonScript(encryptedData, key, iv, 'decrypt');
   console.log("Decrypted Data:", decryptedData);
-  return decryptedData;
+  return decryptedData.decrypted_data;
 }
 
-ipcMain.handle('encrypt-data', (event, data, key) => {
-  return encryptData(data, key);
+ipcMain.handle('encrypt-data', async (event, data, key) => {
+  return await encryptData(data, key);
+});
+
+
+ipcMain.handle('decrypt-data', async (event, encryptedData, key, iv) => {
+  return await decryptData(encryptedData, key, iv);
 });

@@ -39,4 +39,7 @@ contextBridge.exposeInMainWorld('api', {
 
     convertArrayBufferToBuffer: (arrayBuffer) => ipcRenderer.invoke("convert-arraybuffer-to-buffer", arrayBuffer),
     encryptData: (data, key) => ipcRenderer.invoke("encrypt-data", data, key),
+    decryptData: (encryptedData, key, iv) => ipcRenderer.invoke("decrypt-data", encryptedData, key, iv),
+
+    
 });
