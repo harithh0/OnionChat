@@ -295,7 +295,7 @@
       const user_token = await window.api.getUserToken();
       const fileInput = document.getElementById('fileInput');
       const file = fileInput.files[0]; // Get the first selected file
-
+        console.log("file" + file)
       if (!file) {
         return;
       }
@@ -472,8 +472,10 @@
           return;
         }
 
-        socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
-        
+        const targetURL = `${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`
+        const proxyURL = `ws://localhost:3000/?target=${encodeURIComponent(targetURL)}`;
+        console.log("proxyurl: " + proxyURL);
+        socket = new WebSocket(proxyURL);
         
         socket.addEventListener('open', (event) => {
           //console.log('Connected to WebSocket server');

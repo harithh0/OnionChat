@@ -1,4 +1,4 @@
-const { app, BrowserWindow,ipcMain } = require('electron');
+const { app, BrowserWindow,ipcMain, dialog } = require('electron');
 const path = require('node:path');
 
 const fs = require('fs');
@@ -6,6 +6,14 @@ const forge = require('node-forge');
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const { spawn } = require('child_process');
+
+
+// for websocket tor proxy to work
+const express = require('express');
+const WebSocket = require('ws');
+const { SocksProxyAgent } = require('socks-proxy-agent');
+const http = require('http');
+const url = require('url');
 
 
 // tor config:
@@ -47,9 +55,54 @@ ipcMain.handle('torsend', async (event, url, options) => {
 
 // tor config end
 
+const express_app = express();
+const server = http.createServer(express_app);
+const wss = new WebSocket.Server({ noServer: true });
 
 
+server.on('upgrade', (request, socket, head) => {
+  const { pathname, query } = url.parse(request.url, true);
 
+  // Extract the target WebSocket URL from the query string
+  const target = query.target;
+  if (!target) {
+      socket.destroy(); // Close the connection if no target is provided
+      return;
+  }
+
+  const proxyAgent = new SocksProxyAgent('socks5h://127.0.0.1:9050'); // Tor proxy
+  const proxySocket = new WebSocket(target, { agent: proxyAgent });
+
+  // Upgrade the WebSocket connection
+  wss.handleUpgrade(request, socket, head, (ws) => {
+      proxySocket.on('message', (message) => {
+        console.log("recievd message:" + message)
+          ws.send(message); // Forward messages from target to client
+      });
+
+      ws.on('message', (message) => {
+
+        // must convert binary to string 
+        // const originalJsonObject = JSON.parse(message.toString('utf-8')); <- need to also make sure you turn string into json if this is used
+        const originalString = message.toString('utf-8');
+
+        console.log("message to send:", originalString);
+
+
+        proxySocket.send(originalString); // Forward messages from client to target
+      });
+
+      proxySocket.on('close', () => ws.close());
+      ws.on('close', () => proxySocket.close());
+  });
+});
+server.listen(3000, () => {
+  console.log('Proxy server running on http://localhost:3000');
+}).on('error', (err) => {
+  console.error('Failed to start server:', err);
+  dialog.showErrorBox('Server Error', `Failed to start local proxy server: ${err.message}`);
+  process.exit(1); // Exit the application with a non-zero exit code
+});
 
 // Get the path to the user's application data directory
 // will be stored in /.config/appname for linux
