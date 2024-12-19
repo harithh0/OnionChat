@@ -485,7 +485,7 @@
 
         socket.addEventListener('message', async (event) => {
           const data = JSON.parse(event.data);
-          //console.log('Message from server:', data);
+          console.log("Received message:", JSON.stringify(data, null, 2)); // Pretty-print the JSON object
 
           if (data.message_type === "new_message") {
             //console.log(my_private);

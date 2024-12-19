@@ -76,8 +76,9 @@ server.on('upgrade', (request, socket, head) => {
   // Upgrade the WebSocket connection
   wss.handleUpgrade(request, socket, head, (ws) => {
       proxySocket.on('message', (message) => {
-        console.log("recievd message:" + message)
-          ws.send(message); // Forward messages from target to client
+        const originalJsonObject = JSON.parse(message.toString('utf-8')); 
+        console.log("recievd message:" + JSON.stringify(originalJsonObject))
+        ws.send(JSON.stringify(originalJsonObject)); // Forward messages from target to client
       });
 
       ws.on('message', (message) => {
