@@ -90,11 +90,23 @@ server.on('upgrade', (request, socket, head) => {
         console.log("message to send:", originalString);
 
 
-        proxySocket.send(originalString); // Forward messages from client to target
-      });
+        if (proxySocket.readyState === WebSocket.OPEN)
+          proxySocket.send(originalString); // Forward messages from client to target
+        });
 
       proxySocket.on('close', () => ws.close());
       ws.on('close', () => proxySocket.close());
+
+      proxySocket.on('error', (err) => {
+        console.error('WebSocket error:', err);
+        ws.close();
+      });
+      
+      ws.on('error', (err) => {
+        console.error('WebSocket error:', err);
+        proxySocket.close();
+      });
+      
   });
 });
 server.listen(3000, () => {
