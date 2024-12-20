@@ -111,6 +111,17 @@ app.on('ready', async () => {
     dialog.showErrorBox('Error', 'An error occurred while checking port usage.');
     app.quit();
   }
+  try {
+    const isPortInUse = await checkPortUsage(3051);
+    if (isPortInUse) {
+      dialog.showErrorBox('Server Error', 'Failed to start local proxy server. (PORT 3051 already in use)');
+      app.quit();
+    } 
+  } catch (error) {
+    dialog.showErrorBox('Error', 'An error occurred while checking port usage.');
+    app.quit();
+  }
+
 
 
 });
