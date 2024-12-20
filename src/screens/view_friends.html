@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pending Friend Requests</title>
+  <title>Friends</title>
   <style>
     body {
       display: flex;
@@ -53,9 +53,28 @@
       background-color: #dc3545; 
       color: white; 
     }
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgb(255, 255, 255, 1);
+      color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5em;
+      z-index: 1000;
+      display: none; 
+    }
+
   </style>
 </head>
 <body>
+  <div id="loading-overlay">
+    Loading please wait...
+  </div>
   <h1>Friends</h1>
   <div class="container" id="friendsContainer">
     <div class="friend">
@@ -63,9 +82,10 @@
     </div>
   </div>
   <script type="module">
-    import { API_URL , WS_URL} from '../js/config.js';
+    import { API_URL , WS_URL, API_URL_LOCAL_PROXY} from '../js/config.js';
     window.API_URL = API_URL;
     window.WS_URL = WS_URL;
+    window.API_URL_LOCAL_PROXY = API_URL_LOCAL_PROXY;
 </script>
 
 
@@ -88,7 +108,7 @@
 
 
         try {
-        const response = await fetch(`${window.API_URL}/handle_chatroom/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/handle_chatroom/`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
@@ -116,7 +136,7 @@
         const user_token = await window.api.getUserToken();
 
         try {
-        const response = await fetch(`${window.API_URL}/get_public/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/get_public/`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
@@ -142,7 +162,7 @@
         const user_token = await window.api.getUserToken();
 
         try {
-        const response = await fetch(`${window.API_URL}/get_user_SK/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/get_user_SK/`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
@@ -208,10 +228,11 @@
     async function loadCurrentFriends() {
         const user_token = await window.api.getUserToken();
         const current_username = await window.api.getUserName();
+        document.getElementById('loading-overlay').style.display = 'flex';
 
 
       try {
-        const response = await fetch(`${window.API_URL}/get_friends/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/get_friends/`, {
         method: 'GET',
         headers: { 
             'Content-Type': 'application/json', 
@@ -263,6 +284,7 @@
 
           container.appendChild(friendDiv);
         }
+        document.getElementById('loading-overlay').style.display = 'none';
 
       } catch (error) {
         //console.error('Error fetching pending friends:', error);

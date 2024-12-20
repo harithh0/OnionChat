@@ -53,9 +53,27 @@
       background-color: #dc3545;
       color: white; 
     }
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgb(255, 255, 255, 1);
+      color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5em;
+      z-index: 1000;
+      display: none; 
+    }
   </style>
 </head>
 <body>
+  <div id="loading-overlay">
+    Loading please wait...
+  </div>
   <h1>Pending Friend Requests</h1>
   <div class="container" id="pendingFriendsContainer">
     <div class="friend">
@@ -63,8 +81,10 @@
     </div>
   </div>
   <script type="module">
-    import { API_URL } from '../js/config.js';
+    import { API_URL, API_URL_LOCAL_PROXY } from '../js/config.js';
     window.API_URL = API_URL;
+    window.API_URL_LOCAL_PROXY = API_URL_LOCAL_PROXY;
+
 </script>
 
 
@@ -86,9 +106,10 @@
         const user_token = await window.api.getUserToken();
         const current_username = await window.api.getUserName();
 
+        document.getElementById('loading-overlay').style.display = 'flex';
 
       try {
-        const response = await fetch(`${window.API_URL}/get_pending_friends/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/get_pending_friends/`, {
         method: 'GET',
         headers: { 
             'Content-Type': 'application/json', 
@@ -136,6 +157,7 @@
 
           container.appendChild(friendDiv);
         }
+        document.getElementById('loading-overlay').style.display = 'none';
 
       } catch (error) {
         //console.error('Error fetching pending friends:', error);
@@ -147,7 +169,7 @@
         let friend_public_key = null;
 
       try {
-        const response = await fetch(`${window.API_URL}/accept_friend_request/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/accept_friend_request/`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json', 
@@ -163,6 +185,8 @@
           return;
         
         }
+
+
       } catch (error) {
         //console.error('Error accepting friend request:', error);
       }
@@ -170,7 +194,7 @@
 
 
       try {
-        const response = await fetch(`${window.API_URL}/get_public/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/get_public/`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
@@ -200,7 +224,7 @@
         const friend_SK = await window.api.encryptMessage(String(SK), friend_public_key);
         const current_user_SK = await window.api.encryptMessage(String(SK), my_public);
 
-        const response = await fetch(`${window.API_URL}/set_SK/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/set_SK/`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json', 
@@ -228,7 +252,7 @@
         const user_token = await window.api.getUserToken();
 
       try {
-        const response = await fetch(`${window.API_URL}/decline_friend_request/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/decline_friend_request/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ friendName })

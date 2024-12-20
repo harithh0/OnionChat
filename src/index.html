@@ -23,8 +23,9 @@
         </div>
     </div>
     <script type="module">
-        import { API_URL } from './js/config.js';
+        import { API_URL, API_URL_LOCAL_PROXY } from './js/config.js';
         window.API_URL = API_URL;
+        window.API_URL_LOCAL_PROXY = API_URL_LOCAL_PROXY;
     </script>
     <script>
         async function register() {
@@ -55,7 +56,7 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/register/`, {
+                const response = await fetch(`${API_URL_LOCAL_PROXY}${API_URL}/register/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password }), // automatically does "username" : username ... and converts to string
@@ -93,7 +94,7 @@
 
                 const user_token = await window.api.getUserToken();
 
-                const public_response = await fetch(`${API_URL}/set_public/`, {
+                const public_response = await fetch(`${API_URL_LOCAL_PROXY}${API_URL}/set_public/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', "Authorization" : `Token ${user_token}` },
                     body: JSON.stringify({ "public_key" : keys.publicKey }), // automatically does "username" : username ... and converts to string

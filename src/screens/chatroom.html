@@ -236,9 +236,10 @@
   </div>
 
   <script type="module">
-    import { API_URL , WS_URL} from '../js/config.js';
+    import { API_URL , WS_URL, API_URL_LOCAL_PROXY} from '../js/config.js';
     window.API_URL = API_URL;
     window.WS_URL = WS_URL;
+    window.API_URL_LOCAL_PROXY = API_URL_LOCAL_PROXY; 
 </script>
 
   <script>
@@ -443,7 +444,7 @@
         async function get_user_last_online(){
           const user_token = await window.api.getUserToken();
           
-          const response = await fetch(`${API_URL}/get_users_last_online/`, {
+          const response = await fetch(`${API_URL_LOCAL_PROXY}${API_URL}/get_users_last_online/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', "Authorization" : `Token ${user_token}`},
               body: JSON.stringify({ "user_to_get" : realFriendName, "chatroom_id" : chatroomId }), // automatically does "username" : username ... and converts to string
@@ -588,7 +589,7 @@
         const user_token = await window.api.getUserToken();
 
         try {
-        const response = await fetch(`${window.API_URL}/get_messages_from_db/`, {
+        const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/get_messages_from_db/`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
@@ -914,7 +915,7 @@ async function loadMessages() {
 
   async function downloadFile(filePath, message_iv){
     const user_token = await window.api.getUserToken();
-    const response = await fetch(`${API_URL}${filePath}`, {
+    const response = await fetch(`${API_URL_LOCAL_PROXY}${API_URL}${filePath}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', "Authorization" : `Token ${user_token}`},
     });

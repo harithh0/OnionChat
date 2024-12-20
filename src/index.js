@@ -6,6 +6,8 @@ const forge = require('node-forge');
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const { spawn } = require('child_process');
+const { exec } = require('child_process');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 
 // for websocket tor proxy to work
@@ -23,6 +25,9 @@ let torProcess;
 let loadingWindow;
 
 
+if (require("electron-squirrel-startup")){
+  app.quit();
+}
 
 torRequest.setTorAddress('127.0.0.1', 9050);
 
@@ -53,7 +58,63 @@ ipcMain.handle('torsend', async (event, url, options) => {
   }
 });
 
+
+
 // tor config end
+
+
+function checkTorInstallation() {
+  return new Promise((resolve, reject) => {
+    exec('tor --version', (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stdout.includes('Tor'));
+      }
+    });
+  });
+}
+
+function checkPortUsage(port) {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer();
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(true);
+      } else {
+        reject(err);
+      }
+    });
+
+  });
+}
+
+
+app.on('ready', async () => {
+  try {
+    const isTorInstalled = await checkTorInstallation();
+    if (!isTorInstalled) {
+      dialog.showErrorBox('Tor Not Installed', 'Tor is not installed on your system. Please install Tor to use this application.');
+      app.quit();
+    } 
+  } catch (error) {
+    dialog.showErrorBox('Error', 'An error occurred while checking for Tor installation.');
+    app.quit();
+  }
+  try {
+    const isPortInUse = await checkPortUsage(3000);
+    if (isPortInUse) {
+      dialog.showErrorBox('Server Error', 'Failed to start local proxy server. (PORT 3000 already in use)');
+      app.quit();
+    } 
+  } catch (error) {
+    dialog.showErrorBox('Error', 'An error occurred while checking port usage.');
+    app.quit();
+  }
+
+
+});
+
 
 const express_app = express();
 const server = http.createServer(express_app);
@@ -113,9 +174,54 @@ server.listen(3000, () => {
   console.log('Proxy server running on http://localhost:3000');
 }).on('error', (err) => {
   console.error('Failed to start server:', err);
-  dialog.showErrorBox('Server Error', `Failed to start local proxy server: ${err.message}`);
-  process.exit(1); // Exit the application with a non-zero exit code
+  dialog.showErrorBox('Server Error', 'Failed to start local proxy server. (PORT 3000 already in use)');
+  app.quit();
+
 });
+
+
+const express_http_api = express();
+const server_http_api= http.createServer(express_http_api);
+server_http_api.setMaxListeners(20);
+const proxyAgent = new SocksProxyAgent('socks5h://127.0.0.1:9050'); // Tor proxy
+
+express_http_api.use('/', (req, res, next) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) {
+    res.status(400).send('Missing url query parameter');
+    return;
+  }
+  const parsedUrl = url.parse(targetUrl);
+  const newUrl = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
+
+  createProxyMiddleware({
+    target: newUrl,
+    changeOrigin: true,
+    agent: proxyAgent,
+    pathRewrite: (path, req) => {
+      // Remove the 'url' query parameter from the path
+      const queryIndex = path.indexOf('?');
+      if (queryIndex !== -1) {
+        const queryParams = new URLSearchParams(path.substring(queryIndex + 1));
+        queryParams.delete('url');
+        return path.substring(0, queryIndex) + (queryParams.toString() ? '?' + queryParams.toString() : '');
+      }
+      return path;
+    },
+    onProxyReq: (proxyReq, req, res) => {
+      proxyReq.setHeader('Host', parsedUrl.host);
+    }
+  })(req, res, next);
+});
+
+server_http_api.listen(3051, () => {
+  console.log('Proxy server running on http://localhost:3051');
+}).on('error', (err) => {
+  console.error('Failed to start server:', err);
+  dialog.showErrorBox('Server Error', 'Failed to start local proxy server. (PORT 3051 already in use)');
+  app.quit();
+});
+
 
 // Get the path to the user's application data directory
 // will be stored in /.config/appname for linux
@@ -162,25 +268,34 @@ function createLoadingWindow() {
 }
 
 
+
+
 function startTor() {
   return new Promise((resolve, reject) => {
-
-  const torProcess = spawn('tor');
-
-
-  torProcess.stdout.on('data', (data) => {
-      //console.log(`Tor: ${data}`);
+    torProcess = spawn('tor');
+    torProcess.stdout.on('data', (data) => {
+      console.log(`Tor: ${data}`);
+      if (data.toString().includes('Bootstrapped 100%')) {
+        resolve();
+      }
+    });
+    torProcess.stderr.on('data', (data) => {
+      console.error(`Tor error: ${data}`);
+    });
+    torProcess.on('close', (code) => {
+      console.log(`Tor process exited with code ${code}`);
+      dialog.showErrorBox('Tor Closed', 'Tor process has been closed. The application will now exit for security.');
+      app.quit();
+    });
   });
+}
 
-  torProcess.stderr.on('data', (data) => {
-      //console.error(`Tor error: ${data}`);
-  });
 
-  torProcess.on('close', (code) => {
-      //console.log(`Tor process exited with code ${code}`);
-  });
-});
-
+function stopTor() {
+  if (torProcess) {
+    torProcess.kill();
+    torProcess = null;
+  }
 }
 
 function getTorExecutablePath() {
@@ -745,7 +860,20 @@ function checkDatabase() {
   });
 }
 
-checkDatabase().then(isValid => {
+
+
+
+checkDatabase().then(async isValid => {
+  await startTor();
+
+
+  // test
+  // (async () => {
+  //   let response = await torsend("https://api.ipify.org/", { method: "GET" });
+  //   console.log("IP RESPONSE: " + JSON.stringify(response));
+  // })();
+  
+
   if (isValid) {
     app.whenReady().then(() => {
       createRootWindow();
@@ -779,6 +907,9 @@ checkDatabase().then(isValid => {
   });
 });
 
+app.on('before-quit', () => {
+  stopTor();
+});
 
 
 // Quit when all windows are closed, except on macOS. There, it's common
