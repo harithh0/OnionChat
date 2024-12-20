@@ -102,8 +102,8 @@ app.on('ready', async () => {
     app.quit();
   }
   try {
-    const isPortInUse = await checkPortUsage(3000);
-    if (isPortInUse) {
+    const isPort3000InUse = await checkPortUsage(3000);
+    if (isPort3000InUse) {
       dialog.showErrorBox('Server Error', 'Failed to start local proxy server. (PORT 3000 already in use)');
       app.quit();
     } 
@@ -112,8 +112,8 @@ app.on('ready', async () => {
     app.quit();
   }
   try {
-    const isPortInUse = await checkPortUsage(3051);
-    if (isPortInUse) {
+    const isPort3051InUse = await checkPortUsage(3051);
+    if (isPort3051InUse) {
       dialog.showErrorBox('Server Error', 'Failed to start local proxy server. (PORT 3051 already in use)');
       app.quit();
     } 
