@@ -813,8 +813,13 @@ ipcMain.on('open-chatroom-window', (event, { friend, realFriendName, chatroomId,
 });
 
 
+let rootWindow;
+let mainWindow;
+
 const createRootWindow = () => {
-  const rootWindow = new BrowserWindow({
+  if (rootWindow) return; // Only create once
+
+  rootWindow = new BrowserWindow({
     width: 800,
     height: 600,
     resizable: false,
@@ -825,10 +830,19 @@ const createRootWindow = () => {
 
   rootWindow.loadFile(path.join(__dirname, './screens/root.html'));
 
+  rootWindow.on('close', async () => {
+    console.log("Closing app...");
+    app.quit(); // Quit the app when root window closes
+  });
+
+  rootWindow.on('closed', async () => {
+    console.log("App fully closed.");
+    rootWindow = null; // Clean up the root window reference
+  });
 }
 
 const createWindow = () => {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     resizable: false,
@@ -839,14 +853,17 @@ const createWindow = () => {
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
-  mainWindow.on('close', async () => {
-    console.log("Closing app...");
+  // Show the root window when the main window is hidden
+  mainWindow.on('hide', async () => {
+    createRootWindow(); // Show root window
   });
 
   mainWindow.on('closed', async () => {
     console.log("App fully closed.");
+    app.quit();
   });
 };
+
 
 
 
@@ -897,7 +914,12 @@ function checkDatabase() {
 }
 
 
-
+ipcMain.on('hide-window', (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window) {
+    window.hide();
+  }
+});
 
 checkDatabase().then(async isValid => {
   await startTor();

@@ -100,7 +100,7 @@
                     body: JSON.stringify({ "public_key" : keys.publicKey }), // automatically does "username" : username ... and converts to string
                 });
                 if (public_response.ok){
-                  window.close(); 
+                  window.api.hideWindow(); 
                 }
 
                   

@@ -40,7 +40,8 @@ contextBridge.exposeInMainWorld('api', {
     encryptData: (data, key) => ipcRenderer.invoke("encrypt-data", data, key),
     decryptData: (encryptedData, key, iv) => ipcRenderer.invoke("decrypt-data", encryptedData, key, iv),
 
-    torsend: (url, options) => ipcRenderer.invoke('torsend', url, options)
+    torsend: (url, options) => ipcRenderer.invoke('torsend', url, options),
+    hideWindow: () => ipcRenderer.send('hide-window')
 
     
 });
