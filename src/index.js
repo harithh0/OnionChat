@@ -10,12 +10,7 @@ const { exec } = require('child_process');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 
-// for websocket tor proxy to work
-const express = require('express');
-const WebSocket = require('ws');
-const { SocksProxyAgent } = require('socks-proxy-agent');
-const http = require('http');
-const url = require('url');
+
 
 
 // tor config:
@@ -127,6 +122,15 @@ app.on('ready', async () => {
 });
 
 
+
+// for websocket tor proxy to work
+const express = require('express');
+const WebSocket = require('ws');
+const { SocksProxyAgent } = require('socks-proxy-agent');
+const http = require('http');
+const url = require('url');
+const { kill } = require('node:process');
+
 const express_app = express();
 const server = http.createServer(express_app);
 const wss = new WebSocket.Server({ noServer: true });
@@ -149,7 +153,7 @@ server.on('upgrade', (request, socket, head) => {
   wss.handleUpgrade(request, socket, head, (ws) => {
       proxySocket.on('message', (message) => {
         const originalJsonObject = JSON.parse(message.toString('utf-8')); 
-        console.log("recievd message:" + JSON.stringify(originalJsonObject))
+        // console.log("recievd message:" + JSON.stringify(originalJsonObject))
         ws.send(JSON.stringify(originalJsonObject)); // Forward messages from target to client
       });
 
@@ -159,7 +163,7 @@ server.on('upgrade', (request, socket, head) => {
         // const originalJsonObject = JSON.parse(message.toString('utf-8')); <- need to also make sure you turn string into json if this is used
         const originalString = message.toString('utf-8');
 
-        console.log("message to send:", originalString);
+        // console.log("message to send:", originalString);
 
 
         if (proxySocket.readyState === WebSocket.OPEN)
@@ -170,12 +174,12 @@ server.on('upgrade', (request, socket, head) => {
       ws.on('close', () => proxySocket.close());
 
       proxySocket.on('error', (err) => {
-        console.error('WebSocket error:', err);
+        // console.error('WebSocket error:', err);
         ws.close();
       });
       
       ws.on('error', (err) => {
-        console.error('WebSocket error:', err);
+        // console.error('WebSocket error:', err);
         proxySocket.close();
       });
       
@@ -302,12 +306,57 @@ function startTor() {
 }
 
 
-function stopTor() {
+
+async function stopTor() {
   if (torProcess) {
-    torProcess.kill();
-    torProcess = null;
+    return new Promise((resolve) => {
+      torProcess.on('exit', resolve); // Ensure app waits for Tor to exit
+      torProcess.kill('SIGINT'); // Try graceful shutdown
+      setTimeout(() => torProcess.kill('SIGKILL'), 5000); // Force quit if needed
+    });
   }
 }
+
+
+
+function killProcessOnPort(port) {
+  return new Promise((resolve, reject) => {
+    exec(`fuser -k ${port}/tcp`, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+// runs when exiting fully ctrl-C
+app.on('before-quit', async () => {
+  await stopTor();
+  await killProcessOnPort(3000);
+  await killProcessOnPort(3051);
+});
+
+
+// Quit when all windows are closed, except on macOS. There, it's common
+// for applications and their menu bar to stay active until the user quits
+// explicitly with Cmd + Q.
+app.on('window-all-closed', async () => {
+  if (process.platform !== 'darwin') {
+    db.close();
+    
+    try {
+      await stopTor();
+      await killProcessOnPort(3000);
+      await killProcessOnPort(3051);
+    } catch (error) {
+      console.error('Error while stopping processes:', error);
+    }
+    app.quit();
+  }
+});
+
 
 function getTorExecutablePath() {
   const platform = process.platform;
@@ -790,36 +839,14 @@ const createWindow = () => {
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
-
-  // Listen for when the registration window is closed
-
-  let isProgrammaticClose = false;
-
-// if user clicks X
-  mainWindow.on('close', (event) => {
-    if (!isProgrammaticClose) {
-      event.preventDefault();
-      mainWindow.hide();
-    }
+  mainWindow.on('close', async () => {
+    console.log("Closing app...");
   });
 
-  function closeMainWindowProgrammatically() {
-    isProgrammaticClose = true;
-    mainWindow.close();
-  }
-
-mainWindow.on('closed', async () => {
-    const rootWindow = new BrowserWindow({
-      width: 800,
-      height: 600,
-      resizable: false,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-      },
-    });
-  
-    rootWindow.loadFile(path.join(__dirname, './screens/root.html'));
-});
+  mainWindow.on('closed', async () => {
+    console.log("App fully closed.");
+  });
+};
 
 
 
@@ -830,8 +857,6 @@ mainWindow.on('closed', async () => {
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
-};
-
 ipcMain.on('save-json', (event, jsonData) => {
   fs.writeFile(path.join(__dirname, 'data.json'), jsonData, (err) => {
       if (err) {
@@ -918,21 +943,8 @@ checkDatabase().then(async isValid => {
   });
 });
 
-app.on('before-quit', () => {
-  stopTor();
-});
 
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    db.close();
-    // torProcess.kill();
-    app.quit();
-  }
-});
 
 
 

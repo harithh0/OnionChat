@@ -82,10 +82,11 @@
     </div>
   </div>
   <script type="module">
-    import { API_URL , WS_URL, API_URL_LOCAL_PROXY} from '../js/config.js';
+    import { API_URL , WS_URL, API_URL_LOCAL_PROXY, WS_PROXY} from '../js/config.js';
     window.API_URL = API_URL;
     window.WS_URL = WS_URL;
     window.API_URL_LOCAL_PROXY = API_URL_LOCAL_PROXY;
+    window.WS_PROXY = WS_PROXY;
 </script>
 
 
@@ -210,16 +211,22 @@
             window.api.openChatroomWindow(friend, real_friend_name, chatroom_id, friend_public_key, sk);
             window.close();
             return;
-        }
+        } 
+
+        console.log("chatroom_id" + chatroom_id + " " + "friend_public_key"  + friend_public_key + " " + "sk" + sk);
         // open new window of chat 
-        const user_token = await window.api.getUserToken();
+        // const user_token = await window.api.getUserToken();
        
             
-            const socket = new WebSocket(`${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`);
+        //     const targetURL = `${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`
+        //     const proxyURL = `${window.WS_PROXY}/?target=${encodeURIComponent(targetURL)}`;
+        //     socket = new WebSocket(proxyURL);
+
+
             
-            socket.addEventListener('open', (event) => {
-            //console.log('Connected to WebSocket server');
-            });
+        //     socket.addEventListener('open', (event) => {
+        //     //console.log('Connected to WebSocket server');
+        //     });
 
 
     }

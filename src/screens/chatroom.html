@@ -236,10 +236,11 @@
   </div>
 
   <script type="module">
-    import { API_URL , WS_URL, API_URL_LOCAL_PROXY} from '../js/config.js';
+    import { API_URL , WS_URL, API_URL_LOCAL_PROXY, WS_PROXY} from '../js/config.js';
     window.API_URL = API_URL;
     window.WS_URL = WS_URL;
-    window.API_URL_LOCAL_PROXY = API_URL_LOCAL_PROXY; 
+    window.API_URL_LOCAL_PROXY = API_URL_LOCAL_PROXY;
+    window.WS_PROXY = WS_PROXY;
 </script>
 
   <script>
@@ -285,7 +286,7 @@
       connect_websocket()
       .then(() => get_messages_from_db())
       .then(() => {
-          //console.log('Calling loadMessages with s_key:', s_key); // Log before calling loadMessages
+          //// console.log('Calling loadMessages with s_key:', s_key); // Log before calling loadMessages
           loadMessages();
       })
 
@@ -296,7 +297,7 @@
       const user_token = await window.api.getUserToken();
       const fileInput = document.getElementById('fileInput');
       const file = fileInput.files[0]; // Get the first selected file
-        console.log("file" + file)
+        // console.log("file" + file)
       if (!file) {
         return;
       }
@@ -325,7 +326,7 @@
 
           try {
               const {ciphertext, iv} = await window.api.encryptData(dataString, s_key);
-              //console.log(`Encrypted Data: ${JSON.stringify(ciphertext)}`);
+              //// console.log(`Encrypted Data: ${JSON.stringify(ciphertext)}`);
           
               const jsonObject = {
               file: JSON.stringify(ciphertext),
@@ -366,7 +367,7 @@
                   message_type: 'user_typing',
               };
               socket.send(JSON.stringify(payload));
-              //console.log("sent this typing:", JSON.stringify(payload));
+              //// console.log("sent this typing:", JSON.stringify(payload));
               isTyping = true; // Mark typing indicator as active
           }
       }
@@ -377,7 +378,7 @@
               message_type: 'user_stopped_typing',
           };
           socket.send(JSON.stringify(payload));
-          //console.log("sent this stopped typing:", JSON.stringify(payload));
+          //// console.log("sent this stopped typing:", JSON.stringify(payload));
           isTyping = false; // Reset typing indicator
       }
 
@@ -395,7 +396,7 @@
 
       
       const updateUserStatus = async () => {
-        //console.log(connectedUsers)
+        //// console.log(connectedUsers)
 
         if (connectedUsers.length === 2) {
           user_connection_status.textContent = "online";
@@ -474,26 +475,26 @@
         }
 
         const targetURL = `${window.WS_URL}/chat/${chatroom_id}/?token=${user_token}`
-        const proxyURL = `ws://localhost:3000/?target=${encodeURIComponent(targetURL)}`;
-        console.log("proxyurl: " + proxyURL);
+        const proxyURL = `${window.WS_PROXY}/?target=${encodeURIComponent(targetURL)}`;
+        // console.log("proxyurl: " + proxyURL);
         socket = new WebSocket(proxyURL);
         
         socket.addEventListener('open', (event) => {
-          //console.log('Connected to WebSocket server');
+          //// console.log('Connected to WebSocket server');
           statusElement.textContent = 'Connected';
           statusElement.style.color = 'green';
         });
 
         socket.addEventListener('message', async (event) => {
           const data = JSON.parse(event.data);
-          console.log("Received message:", JSON.stringify(data, null, 2)); // Pretty-print the JSON object
+          // console.log("Received message:", JSON.stringify(data, null, 2)); // Pretty-print the JSON object
 
           if (data.message_type === "new_message") {
-            //console.log(my_private);
+            //// console.log(my_private);
             const ivBuffer = await window.api.convertIVToBuffer(data.iv);
             const decryptedMessage = await window.api.decryptMessageUsingSK(data.encrypted_message, s_key, ivBuffer);
             const verifySignature = await window.api.verifyMessage(decryptedMessage, data.message_signature, friend_public_key) ;
-            //console.log("decrypted message", decryptedMessage)
+            //// console.log("decrypted message", decryptedMessage)
            
             if (verifySignature === true){
               const newMessage = {
@@ -512,7 +513,7 @@
               };
             messagesData.push(newMessage);
             loadMessages();
-            //console.log('Message from server:', event.data);
+            //// console.log('Message from server:', event.data);
 
           }
           } else if (data.message_type === "user_typing_message"){
@@ -536,7 +537,7 @@
 
 
           } else if (data.message_type == "new_upload"){
-            //console.log("file recieved", data);
+            //// console.log("file recieved", data);
             // should check if signature is valid
             const formatted_data = {
               "message_type": "new_upload",
@@ -555,7 +556,7 @@
 
         
         socket.addEventListener('close', (event) => {
-          //console.log('Disconnected from WebSocket server');
+          //// console.log('Disconnected from WebSocket server');
           statusElement.textContent = 'Disconnected';
           statusElement.style.color = 'red';
           statusElement.style.textAlign = 'center';
@@ -607,7 +608,7 @@
         }
 
         messagesData = await response.json();
-        //console.log(messagesData);
+        //// console.log(messagesData);
 
       } catch (error) {
         //console.error('Error fetching pending friends:', error);
@@ -649,7 +650,7 @@ async function loadMessages() {
   let lastTime = '';
   let messageGroup = null;
 
-  //console.log("messagesData:", messagesData);
+  //// console.log("messagesData:", messagesData);
 
   for (const [index, message] of messagesData.entries()) {
     if (message.isFile !== true){
@@ -687,7 +688,7 @@ async function loadMessages() {
       const decryptedMessage = await window.api.decryptMessageUsingSK(message.content, s_key, ivBuffer);
       messageElement.innerText = decryptedMessage;
 
-      //console.log("current user:", currentUser);
+      //// console.log("current user:", currentUser);
       if (message.senderUsername === currentUser) {
         messageElement.classList.add('sent');
         messageGroup.style.alignItems = 'flex-end';
@@ -752,7 +753,7 @@ async function loadMessages() {
 
 
 
-      //console.log("current user:", currentUser);
+      //// console.log("current user:", currentUser);
       if (message.senderUsername === currentUser) {
         messageElement.classList.add('sent');
         messageGroup.style.alignItems = 'flex-end';
@@ -967,7 +968,7 @@ async function loadMessages() {
           socket.send(JSON.stringify({"message_type": 'user_stopped_typing'}));
           isTyping = false; // Reset typing indicator
 
-          //console.log('Message sent:', jsonPayload);
+          //// console.log('Message sent:', jsonPayload);
 
           const newMessage = {
             senderUsername: currentUser,
