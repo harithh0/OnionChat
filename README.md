@@ -19,7 +19,10 @@ OnionChat is a secure messaging app that uses asymmetric and symmetric cryptogra
 - **Kill switch**: If for any reason Tor service stops running, no further data will be able to be sent and the app will automatically close.
 
 
+### Preview
 
+<source src="./assets/preview.mp4" type="video/mp4">
+<source src="./assets/preview2.mp4" type="video/mp4">
 
 ## Languages/frameworks used
 
@@ -29,10 +32,12 @@ OnionChat is a secure messaging app that uses asymmetric and symmetric cryptogra
 
 ## How to compile & run
 
-`npm run make`
+1. `npm install`
+2. `npm run make`
+3. view executable at "out/make/deb" or "out/make/rpm" 
 
-view executable at "out/make/deb" or "out/make/rpm" 
-
+## Prerquisets
+- NodeJS & npm
 - Make sure you have tor installed
     - For Debian: `sudo apt install tor`
     - Turn off Tor: `sudo systemctl disable tor` -- It will be ran by the application (we don't want it to already be ran)
