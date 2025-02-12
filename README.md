@@ -55,7 +55,6 @@ OnionChat is a secure messaging app that uses asymmetric and symmetric cryptogra
 https://github.com/harithh0/OnionChat-server
 
 
-
 ## Please Note
 - Server will may not be on all the time.
-- You can host your own server below:
+- You can host your own server by visiting the server source code above
