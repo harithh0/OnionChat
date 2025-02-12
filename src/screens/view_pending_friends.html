@@ -108,6 +108,7 @@
 
         document.getElementById('loading-overlay').style.display = 'flex';
 
+    console.log(`${API_URL_LOCAL_PROXY}${window.API_URL}/accept_friend_request/`)
       try {
         const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/get_pending_friends/`, {
         method: 'GET',
@@ -167,6 +168,7 @@
     async function acceptFriendRequest(friend, friendName) {
         const user_token = await window.api.getUserToken();
         let friend_public_key = null;
+
 
       try {
         const response = await fetch(`${API_URL_LOCAL_PROXY}${window.API_URL}/accept_friend_request/`, {
