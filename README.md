@@ -48,7 +48,8 @@ OnionChat is a secure messaging app that uses asymmetric and symmetric cryptogra
 
 
 ## Blog post
-- Here is a deep dive on this project here: 
+- Here is a deep dive on this project here:
+https://harithh.site/blog/onionchat-writeup/
 
 ## Server
 
